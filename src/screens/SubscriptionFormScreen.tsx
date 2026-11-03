@@ -32,10 +32,16 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
   const form = useSubscriptionForm(onBack, initialData)
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios')
-    if (selectedDate) form.setDate(selectedDate)
+  const onDateChange = (event: any, date?: Date) => {
+  if (Platform.OS === 'android') {
+    setShowDatePicker(false)
   }
+  if (date) form.setDate(date)
+}
+
+const onDismiss = () => {
+  setShowDatePicker(false)
+}
 
   return (
     <View style={styles.container}>
@@ -82,12 +88,13 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
         {showDatePicker && (
           <DateTimePicker
-            value={form.date}
-            mode='date'
-            display='default'
-            onChange={onDateChange}
-            minimumDate={new Date()}
-          />
+  value={form.date}
+  mode="date"
+  display="default"
+  onValueChange={onDateChange} // <-- Было onChange
+  onDismiss={onDismiss}
+  minimumDate={new Date()}
+/>
         )}
 
         <TouchableOpacity

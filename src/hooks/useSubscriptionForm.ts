@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useSubscriptionStore } from '../store/useSubscriptionStore'
 import { Category, Subscription } from '../types'
-import {
-  requestNotificationPermissions,
-  scheduleSubscriptionReminder,
-} from '../services/notificationService'
+import { requestNotificationPermissions, scheduleSubscriptionReminder } from '../service/notificationService'
+
 
 export const useSubscriptionForm = (
   onSuccess: () => void,

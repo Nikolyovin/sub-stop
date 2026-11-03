@@ -22,7 +22,7 @@
       "package": "com.nikolyovin.substop",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#2563EB"
       }
     },
@@ -36,7 +36,8 @@
           "icon": "./assets/icon.png",
           "color": "#2563EB"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }
