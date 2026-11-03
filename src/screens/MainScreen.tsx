@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import {
   View,
   Text,
@@ -6,22 +6,21 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native'
-import { useSubscriptionStore } from '../store/useSubscriptionStore'
+import { useDashboard } from '../hooks/useDashboard'
 import { SubscriptionCard } from '../components/SubscriptionCard'
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../theme'
 import { Subscription } from '../types'
 
-export const MainScreen = () => {
+interface MainScreenProps {
+  onAddPress: () => void
+}
+
+export const MainScreen: React.FC<MainScreenProps> = ({ onAddPress }) => {
   const styles = useMemo(() => createStyles(), [])
 
-  // Достаем данные из Zustand
-  const { subscriptions, addSubscription, removeSubscription } =
-    useSubscriptionStore()
-
-  // Считаем общую сумму в месяц
-  const totalMonthly = useMemo(() => {
-    return subscriptions.reduce((sum, sub) => sum + sub.price, 0)
-  }, [subscriptions])
+  // Вся логика скрыта в хуке!
+  const { subscriptions, removeSubscription, totalMonthly, totalYearly } =
+    useDashboard()
 
   const renderItem = useCallback(
     ({ item }: { item: Subscription }) => (
@@ -30,40 +29,26 @@ export const MainScreen = () => {
     [removeSubscription],
   )
 
-  // Функция для добавления тестовой подписки
-  const handleAddTest = () => {
-    const today = new Date().toISOString().split('T')[0]
-    addSubscription({
-      name: 'Яндекс.Плюс',
-      price: 399,
-      currency: 'RUB',
-      billingCycle: 'monthly',
-      nextPaymentDate: today,
-      category: 'Развлечения',
-    })
-  }
-
   return (
     <View style={styles.container}>
-      {/* Шапка с общей суммой */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Мои подписки</Text>
-
-        <View style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Расходы в месяц</Text>
-          <Text style={styles.totalAmount}>{totalMonthly} ₽</Text>
-          <Text style={styles.totalYearly}>
-            Это {totalMonthly * 12} ₽ в год
-          </Text>
-        </View>
+        <TouchableOpacity onPress={onAddPress} style={styles.addButton}>
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Список подписок */}
+      <View style={styles.totalCard}>
+        <Text style={styles.totalLabel}>Расходы в месяц</Text>
+        <Text style={styles.totalAmount}>{totalMonthly} ₽</Text>
+        <Text style={styles.totalYearly}>Это {totalYearly} ₽ в год</Text>
+      </View>
+
       {subscriptions.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>У вас пока нет подписок</Text>
-          <TouchableOpacity style={styles.testButton} onPress={handleAddTest}>
-            <Text style={styles.testButtonText}>Добавить тестовую</Text>
+          <TouchableOpacity style={styles.testButton} onPress={onAddPress}>
+            <Text style={styles.testButtonText}>Добавить первую</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -81,24 +66,35 @@ export const MainScreen = () => {
 
 const createStyles = () =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: COLORS.background,
-      paddingTop: 60, // Отступ под статус-бар
-    },
+    container: { flex: 1, backgroundColor: COLORS.background, paddingTop: 60 },
     header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       paddingHorizontal: SPACING.lg,
-      marginBottom: SPACING.lg,
-    },
-    headerTitle: {
-      ...TYPOGRAPHY.title,
-      color: COLORS.textMain,
       marginBottom: SPACING.md,
+    },
+    headerTitle: { ...TYPOGRAPHY.title, color: COLORS.textMain },
+    addButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    addButtonText: {
+      color: COLORS.white,
+      fontSize: 28,
+      fontWeight: '300',
+      marginTop: -2,
     },
     totalCard: {
       backgroundColor: COLORS.primary,
       borderRadius: BORDER_RADIUS.xl,
       padding: SPACING.lg,
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.lg,
       ...SHADOWS.medium,
     },
     totalLabel: {
@@ -112,14 +108,8 @@ const createStyles = () =>
       color: COLORS.white,
       marginBottom: SPACING.sm,
     },
-    totalYearly: {
-      ...TYPOGRAPHY.body,
-      color: 'rgba(255,255,255,0.9)',
-    },
-    listContent: {
-      paddingHorizontal: SPACING.lg,
-      paddingBottom: SPACING.xl,
-    },
+    totalYearly: { ...TYPOGRAPHY.body, color: 'rgba(255,255,255,0.9)' },
+    listContent: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
     emptyState: {
       flex: 1,
       justifyContent: 'center',
@@ -138,8 +128,5 @@ const createStyles = () =>
       borderRadius: BORDER_RADIUS.round,
       ...SHADOWS.soft,
     },
-    testButtonText: {
-      ...TYPOGRAPHY.button,
-      color: COLORS.primary,
-    },
+    testButtonText: { ...TYPOGRAPHY.button, color: COLORS.primary },
   })

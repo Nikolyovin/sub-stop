@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
-import { Subscription } from '../types'
+import { Ionicons } from '@expo/vector-icons'
+import { Subscription, CATEGORIES } from '../types' // <-- Импортируем справочник
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../theme'
 
 interface SubscriptionCardProps {
@@ -14,13 +15,23 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
 }) => {
   const styles = useMemo(() => createStyles(), [])
 
+  // Находим настройки для категории
+  const categoryData =
+    CATEGORIES.find((c) => c.id === subscription.category) || CATEGORIES[4]
+
   return (
     <View style={styles.card}>
-      <View style={styles.iconContainer}>
-        {/* Пока используем эмодзи, позже заменим на реальные иконки */}
-        <Text style={styles.icon}>
-          {subscription.category === 'Развлечения' ? '🎬' : '📦'}
-        </Text>
+      <View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: `${categoryData.color}15` },
+        ]}
+      >
+        <Ionicons
+          name={categoryData.icon as any}
+          size={24}
+          color={categoryData.color}
+        />
       </View>
 
       <View style={styles.info}>
@@ -28,12 +39,17 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           {subscription.name}
         </Text>
         <Text style={styles.date}>
-          Следующее списание: {subscription.nextPaymentDate}
+          Списание: {subscription.nextPaymentDate}
         </Text>
       </View>
 
       <View style={styles.rightSide}>
-        <Text style={styles.price}>{subscription.price} ₽</Text>
+        <Text style={styles.price}>
+          {subscription.price} ₽
+          {subscription.billingCycle === 'yearly' && (
+            <Text style={styles.cycleText}>/год</Text>
+          )}
+        </Text>
         <TouchableOpacity onPress={() => onRemove(subscription.id)}>
           <Text style={styles.deleteBtn}>✕</Text>
         </TouchableOpacity>
@@ -57,40 +73,24 @@ const createStyles = () =>
       width: 48,
       height: 48,
       borderRadius: BORDER_RADIUS.md,
-      backgroundColor: '#F1F5F9',
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: SPACING.md,
     },
-    icon: {
-      fontSize: 24,
-    },
-    info: {
-      flex: 1,
-    },
+    info: { flex: 1 },
     name: {
       ...TYPOGRAPHY.subtitle,
       color: COLORS.textMain,
       fontSize: 16,
       marginBottom: 4,
     },
-    date: {
-      ...TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
-    },
+    date: { ...TYPOGRAPHY.caption, color: COLORS.textSecondary },
     rightSide: {
       alignItems: 'flex-end',
       justifyContent: 'space-between',
       height: '100%',
     },
-    price: {
-      ...TYPOGRAPHY.subtitle,
-      color: COLORS.textMain,
-    },
-    deleteBtn: {
-      color: COLORS.danger,
-      fontSize: 16,
-      marginTop: 8,
-      padding: 4,
-    },
+    price: { ...TYPOGRAPHY.subtitle, color: COLORS.textMain },
+    cycleText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '400' },
+    deleteBtn: { color: COLORS.danger, fontSize: 16, marginTop: 8, padding: 4 },
   })
