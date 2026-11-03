@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../../theme'
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY, ThemeColors } from '../../theme'
+import { useTheme } from '../../theme/ThemeContext'
 
 interface CycleSelectorProps {
   value: 'monthly' | 'yearly'
@@ -11,7 +12,8 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
   value,
   onChange,
 }) => {
-  const styles = useMemo(() => createStyles(), [])
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
 
   return (
     <View style={styles.container}>
@@ -36,7 +38,7 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
   )
 }
 
-const createStyles = () =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flexDirection: 'row',
@@ -45,17 +47,17 @@ const createStyles = () =>
     },
     button: {
       flex: 1,
-      backgroundColor: COLORS.card,
+      backgroundColor: colors.card,
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.md,
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: colors.border,
     },
     activeButton: {
-      backgroundColor: COLORS.primary,
-      borderColor: COLORS.primary,
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
     },
-    text: { ...TYPOGRAPHY.body, color: COLORS.textMain, fontWeight: '500' },
-    activeText: { color: COLORS.white, fontWeight: 'bold' },
+    text: { ...TYPOGRAPHY.body, color: colors.textMain, fontWeight: '500' },
+    activeText: { color: colors.white, fontWeight: 'bold' },
   })

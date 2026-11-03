@@ -5,7 +5,9 @@ import { Subscription } from '../types'
 
 interface SubscriptionState {
   subscriptions: Subscription[]
-  addSubscription: (sub: Omit<Subscription, 'id'>) => void
+  // Возвращает созданный объект (нужно для уведомлений)
+  addSubscriptionAndReturn: (sub: Omit<Subscription, 'id'>) => Subscription
+  updateSubscription: (id: string, updatedSub: Partial<Subscription>) => void
   removeSubscription: (id: string) => void
 }
 
@@ -13,7 +15,8 @@ export const useSubscriptionStore = create<SubscriptionState>()(
   persist(
     (set) => ({
       subscriptions: [],
-      addSubscriptionAndReturn: (sub: Omit<Subscription, 'id'>) => {
+
+      addSubscriptionAndReturn: (sub) => {
         const newSub = {
           ...sub,
           id: Math.random().toString(36).substring(2, 9),
@@ -24,12 +27,11 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         return newSub
       },
 
-      addSubscription: (sub) =>
+      updateSubscription: (id, updatedSub) =>
         set((state) => ({
-          subscriptions: [
-            ...state.subscriptions,
-            { ...sub, id: Math.random().toString(36).substring(2, 9) },
-          ],
+          subscriptions: state.subscriptions.map((s) =>
+            s.id === id ? { ...s, ...updatedSub } : s,
+          ),
         })),
 
       removeSubscription: (id) =>
@@ -38,7 +40,7 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         })),
     }),
     {
-      name: 'sub-stop-storage', // Имя ключа в памяти телефона
+      name: 'sub-stop-storage',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

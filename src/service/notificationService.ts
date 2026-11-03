@@ -2,7 +2,6 @@ import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
 import { Subscription } from '../types'
 
-// Настройка поведения, когда приложение открыто и приходит уведомление
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -40,13 +39,11 @@ export const requestNotificationPermissions = async () => {
 export const scheduleSubscriptionReminder = async (
   subscription: Subscription,
 ) => {
-  // Вычисляем дату напоминания (за 2 дня до списания)
   const paymentDate = new Date(subscription.nextPaymentDate)
   const reminderDate = new Date(paymentDate)
   reminderDate.setDate(reminderDate.getDate() - 2)
-  reminderDate.setHours(10, 0, 0, 0) // Напоминаем в 10:00 утра
+  reminderDate.setHours(10, 0, 0, 0)
 
-  // Если дата напоминания уже прошла (например, подписка создается на завтра), не ставим
   if (reminderDate.getTime() <= Date.now()) {
     return
   }
@@ -58,6 +55,8 @@ export const scheduleSubscriptionReminder = async (
       data: { subscriptionId: subscription.id },
     },
     trigger: {
+      // В новых версиях Expo нужно явно указывать тип триггера
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: reminderDate,
       channelId: 'subscriptions',
     },

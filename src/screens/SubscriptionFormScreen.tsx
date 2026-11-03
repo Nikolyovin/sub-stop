@@ -9,24 +9,28 @@ import {
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { format } from 'date-fns'
-import { useAddSubscription } from '../hooks/useAddSubscription'
+import { useSubscriptionForm } from '../hooks/useSubscriptionForm'
 import { InputField } from '../components/ui/InputField'
 import { CycleSelector } from '../components/ui/CycleSelector'
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../theme'
 import { CategorySelector } from '../components/ui/CategorySelector'
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../theme'
+import { useTheme } from '../theme/ThemeContext'
+import { Subscription } from '../types'
 
-interface AddSubscriptionScreenProps {
+interface SubscriptionFormScreenProps {
   onBack: () => void
+  initialData?: Subscription
 }
 
-export const AddSubscriptionScreen: React.FC<AddSubscriptionScreenProps> = ({
+export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
   onBack,
+  initialData,
 }) => {
-  const styles = useMemo(() => createStyles(), [])
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const [showDatePicker, setShowDatePicker] = useState(false)
 
-  // Подключаем наш хук с логикой
-  const form = useAddSubscription(onBack)
+  const form = useSubscriptionForm(onBack, initialData)
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios')
@@ -39,19 +43,19 @@ export const AddSubscriptionScreen: React.FC<AddSubscriptionScreenProps> = ({
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backText}>← Назад</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Новая подписка</Text>
+        <Text style={styles.headerTitle}>
+          {form.isEditing ? 'Редактирование' : 'Новая подписка'}
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView contentContainerStyle={styles.form}>
-        {/* Глупые компоненты получают только данные и коллбеки */}
         <InputField
           label='Название'
           value={form.name}
           onChangeText={form.setName}
           placeholder='Например, Яндекс.Плюс'
         />
-
         <InputField
           label='Стоимость (₽)'
           value={form.price}
@@ -91,16 +95,18 @@ export const AddSubscriptionScreen: React.FC<AddSubscriptionScreenProps> = ({
           onPress={form.save}
           disabled={!form.isValid}
         >
-          <Text style={styles.saveBtnText}>Сохранить</Text>
+          <Text style={styles.saveBtnText}>
+            {form.isEditing ? 'Сохранить изменения' : 'Добавить'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
   )
 }
 
-const createStyles = () =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background, paddingTop: 60 },
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -109,31 +115,31 @@ const createStyles = () =>
       marginBottom: SPACING.xl,
     },
     backBtn: { width: 60 },
-    backText: { fontSize: 18, color: COLORS.primary, fontWeight: '500' },
-    headerTitle: { ...TYPOGRAPHY.subtitle, color: COLORS.textMain },
+    backText: { fontSize: 18, color: colors.primary, fontWeight: '500' },
+    headerTitle: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
     placeholder: { width: 60 },
     form: { paddingHorizontal: SPACING.lg },
     label: {
       ...TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
+      color: colors.textSecondary,
       marginBottom: SPACING.xs,
     },
     dateInput: {
-      backgroundColor: COLORS.card,
+      backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
       padding: SPACING.md,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: colors.border,
       marginBottom: SPACING.md,
     },
-    dateText: { fontSize: 16, color: COLORS.textMain },
+    dateText: { fontSize: 16, color: colors.textMain },
     saveBtn: {
-      backgroundColor: COLORS.primary,
+      backgroundColor: colors.primary,
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.round,
       alignItems: 'center',
       marginTop: SPACING.xl,
     },
     saveBtnDisabled: { opacity: 0.5 },
-    saveBtnText: { ...TYPOGRAPHY.button, color: COLORS.white, fontSize: 18 },
+    saveBtnText: { ...TYPOGRAPHY.button, color: colors.white, fontSize: 18 },
   })

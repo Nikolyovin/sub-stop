@@ -8,7 +8,8 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { CATEGORIES, Category } from '../../types'
-import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../../theme'
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY, ThemeColors } from '../../theme'
+import { useTheme } from '../../theme/ThemeContext'
 
 interface CategorySelectorProps {
   selected: Category
@@ -19,7 +20,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   selected,
   onSelect,
 }) => {
-  const styles = useMemo(() => createStyles(), [])
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
 
   return (
     <View style={styles.container}>
@@ -40,7 +42,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
               <Ionicons
                 name={cat.icon as any}
                 size={24}
-                color={isActive ? COLORS.white : cat.color}
+                color={isActive ? colors.white : cat.color}
               />
               <Text
                 style={[
@@ -58,37 +60,30 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   )
 }
 
-const createStyles = () =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { marginBottom: SPACING.md },
     label: {
       ...TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
+      color: colors.textSecondary,
       marginBottom: SPACING.xs,
     },
     scrollContent: { gap: SPACING.sm },
     categoryBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: COLORS.card,
+      backgroundColor: colors.card,
       paddingVertical: SPACING.sm,
       paddingHorizontal: SPACING.md,
       borderRadius: BORDER_RADIUS.round,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: colors.border,
       gap: SPACING.xs,
     },
     categoryBtnActive: {
-      backgroundColor: COLORS.primary,
-      borderColor: COLORS.primary,
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
     },
-    categoryText: {
-      ...TYPOGRAPHY.body,
-      color: COLORS.textMain,
-      fontSize: 14,
-    },
-    categoryTextActive: {
-      color: COLORS.white,
-      fontWeight: 'bold',
-    },
+    categoryText: { ...TYPOGRAPHY.body, color: colors.textMain, fontSize: 14 },
+    categoryTextActive: { color: colors.white, fontWeight: 'bold' },
   })

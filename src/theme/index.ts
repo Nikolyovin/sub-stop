@@ -1,15 +1,30 @@
-export const COLORS = {
-  primary: '#2563EB', // Глубокий синий (кнопки, акценты)
-  accent: '#10B981', // Мятно-зеленый (успешные статусы, "Выгода")
-  danger: '#EF4444', // Красный (удаление, дорогие подписки)
-  background: '#F8FAFC', // Очень светлый серо-голубой (фон экрана)
-  card: '#FFFFFF', // Белый (карточки подписок)
-  textMain: '#0F172A', // Почти черный (заголовки)
-  textSecondary: '#64748B', // Серый (подписи, даты)
+export const lightColors = {
+  primary: '#2563EB',
+  accent: '#10B981',
+  danger: '#EF4444',
+  background: '#F8FAFC',
+  card: '#FFFFFF',
+  textMain: '#0F172A',
+  textSecondary: '#64748B',
   white: '#FFFFFF',
-  border: '#E2E8F0', // Светлая рамка для карточек
+  border: '#E2E8F0',
   shadow: '#000000',
 }
+
+export const darkColors = {
+  primary: '#3B82F6',
+  accent: '#10B981',
+  danger: '#EF4444',
+  background: '#0F172A',
+  card: '#1E293B',
+  textMain: '#F8FAFC',
+  textSecondary: '#94A3B8',
+  white: '#FFFFFF',
+  border: '#334155',
+  shadow: '#000000',
+}
+
+export type ThemeColors = typeof lightColors
 
 export const SPACING = {
   xs: 4,

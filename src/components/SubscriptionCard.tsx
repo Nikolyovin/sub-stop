@@ -1,8 +1,15 @@
 import React, { useMemo } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Subscription, CATEGORIES } from '../types' // <-- Импортируем справочник
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../theme'
+import { Subscription, CATEGORIES } from '../types'
+import {
+  SPACING,
+  TYPOGRAPHY,
+  BORDER_RADIUS,
+  SHADOWS,
+  ThemeColors,
+} from '../theme'
+import { useTheme } from '../theme/ThemeContext'
 
 interface SubscriptionCardProps {
   subscription: Subscription
@@ -13,9 +20,9 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   subscription,
   onRemove,
 }) => {
-  const styles = useMemo(() => createStyles(), [])
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
 
-  // Находим настройки для категории
   const categoryData =
     CATEGORIES.find((c) => c.id === subscription.category) || CATEGORIES[4]
 
@@ -58,12 +65,12 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   )
 }
 
-const createStyles = () =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     card: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: COLORS.card,
+      backgroundColor: colors.card,
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.lg,
       marginBottom: SPACING.sm,
@@ -80,17 +87,17 @@ const createStyles = () =>
     info: { flex: 1 },
     name: {
       ...TYPOGRAPHY.subtitle,
-      color: COLORS.textMain,
+      color: colors.textMain,
       fontSize: 16,
       marginBottom: 4,
     },
-    date: { ...TYPOGRAPHY.caption, color: COLORS.textSecondary },
+    date: { ...TYPOGRAPHY.caption, color: colors.textSecondary },
     rightSide: {
       alignItems: 'flex-end',
       justifyContent: 'space-between',
       height: '100%',
     },
-    price: { ...TYPOGRAPHY.subtitle, color: COLORS.textMain },
-    cycleText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '400' },
-    deleteBtn: { color: COLORS.danger, fontSize: 16, marginTop: 8, padding: 4 },
+    price: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
+    cycleText: { fontSize: 12, color: colors.textSecondary, fontWeight: '400' },
+    deleteBtn: { color: colors.danger, fontSize: 16, marginTop: 8, padding: 4 },
   })

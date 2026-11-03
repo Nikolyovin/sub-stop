@@ -6,36 +6,71 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useDashboard } from '../hooks/useDashboard'
 import { SubscriptionCard } from '../components/SubscriptionCard'
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../theme'
+import {
+  SPACING,
+  TYPOGRAPHY,
+  BORDER_RADIUS,
+  SHADOWS,
+  ThemeColors,
+} from '../theme'
+import { useTheme } from '../theme/ThemeContext'
 import { Subscription } from '../types'
 
 interface MainScreenProps {
   onAddPress: () => void
+  onOpenSettings: () => void
+  onOpenDetails: (id: string) => void
 }
 
-export const MainScreen: React.FC<MainScreenProps> = ({ onAddPress }) => {
-  const styles = useMemo(() => createStyles(), [])
+export const MainScreen: React.FC<MainScreenProps> = ({
+  onAddPress,
+  onOpenSettings,
+  onOpenDetails,
+}) => {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
 
-  // Вся логика скрыта в хуке!
   const { subscriptions, removeSubscription, totalMonthly, totalYearly } =
     useDashboard()
 
   const renderItem = useCallback(
     ({ item }: { item: Subscription }) => (
-      <SubscriptionCard subscription={item} onRemove={removeSubscription} />
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => onOpenDetails(item.id)}
+      >
+        <SubscriptionCard subscription={item} onRemove={removeSubscription} />
+      </TouchableOpacity>
     ),
-    [removeSubscription],
+    [removeSubscription, onOpenDetails],
   )
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <View style={styles.headerSide}>
+          <TouchableOpacity
+            onPress={onOpenSettings}
+            style={[styles.iconBtn, { backgroundColor: colors.card }]}
+          >
+            <Ionicons
+              name='settings-outline'
+              size={24}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.headerTitle}>Мои подписки</Text>
-        <TouchableOpacity onPress={onAddPress} style={styles.addButton}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
+
+        <View style={[styles.headerSide, { alignItems: 'flex-end' }]}>
+          <TouchableOpacity onPress={onAddPress} style={styles.iconBtnPrimary}>
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.totalCard}>
@@ -64,9 +99,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onAddPress }) => {
   )
 }
 
-const createStyles = () =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background, paddingTop: 60 },
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -74,23 +109,37 @@ const createStyles = () =>
       paddingHorizontal: SPACING.lg,
       marginBottom: SPACING.md,
     },
-    headerTitle: { ...TYPOGRAPHY.title, color: COLORS.textMain },
-    addButton: {
+    headerSide: { flex: 1 },
+    headerTitle: {
+      flex: 2,
+      textAlign: 'center',
+      ...TYPOGRAPHY.title,
+      color: colors.textMain,
+      fontSize: 22,
+    },
+    iconBtn: {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: COLORS.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconBtnPrimary: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
     },
     addButtonText: {
-      color: COLORS.white,
+      color: colors.white,
       fontSize: 28,
       fontWeight: '300',
       marginTop: -2,
     },
     totalCard: {
-      backgroundColor: COLORS.primary,
+      backgroundColor: colors.primary,
       borderRadius: BORDER_RADIUS.xl,
       padding: SPACING.lg,
       marginHorizontal: SPACING.lg,
@@ -105,7 +154,7 @@ const createStyles = () =>
     totalAmount: {
       fontSize: 36,
       fontWeight: '800',
-      color: COLORS.white,
+      color: colors.white,
       marginBottom: SPACING.sm,
     },
     totalYearly: { ...TYPOGRAPHY.body, color: 'rgba(255,255,255,0.9)' },
@@ -118,15 +167,15 @@ const createStyles = () =>
     },
     emptyText: {
       ...TYPOGRAPHY.body,
-      color: COLORS.textSecondary,
+      color: colors.textSecondary,
       marginBottom: SPACING.lg,
     },
     testButton: {
-      backgroundColor: COLORS.card,
+      backgroundColor: colors.card,
       paddingHorizontal: SPACING.lg,
       paddingVertical: SPACING.md,
       borderRadius: BORDER_RADIUS.round,
       ...SHADOWS.soft,
     },
-    testButtonText: { ...TYPOGRAPHY.button, color: COLORS.primary },
+    testButtonText: { ...TYPOGRAPHY.button, color: colors.primary },
   })

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { View, Text, TextInput, StyleSheet } from 'react-native'
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../../theme'
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../../theme'
+import { useTheme } from '../../theme/ThemeContext'
 
 interface InputFieldProps {
   label: string
@@ -17,7 +18,8 @@ export const InputField: React.FC<InputFieldProps> = ({
   placeholder,
   keyboardType = 'default',
 }) => {
-  const styles = useMemo(() => createStyles(), [])
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
 
   return (
     <View style={styles.container}>
@@ -27,28 +29,28 @@ export const InputField: React.FC<InputFieldProps> = ({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={COLORS.textSecondary}
+        placeholderTextColor={colors.textSecondary}
         keyboardType={keyboardType}
       />
     </View>
   )
 }
 
-const createStyles = () =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { marginBottom: SPACING.md },
     label: {
       ...TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
+      color: colors.textSecondary,
       marginBottom: SPACING.xs,
     },
     input: {
-      backgroundColor: COLORS.card,
+      backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
       padding: SPACING.md,
       fontSize: 16,
-      color: COLORS.textMain,
+      color: colors.textMain,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: colors.border,
     },
   })
