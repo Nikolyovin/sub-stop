@@ -13,6 +13,8 @@ export interface Subscription {
   billingCycle: 'monthly' | 'yearly'
   nextPaymentDate: string
   category: Category // <-- Теперь это строгий тип
+  isTrial?: boolean
+  trialEndDate?: string
 }
 
 // Справочник категорий для UI

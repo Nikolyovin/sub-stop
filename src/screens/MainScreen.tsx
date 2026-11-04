@@ -1,28 +1,28 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-} from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { useDashboard } from '../hooks/useDashboard'
-import { SubscriptionCard } from '../components/SubscriptionCard'
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useDashboard } from "../hooks/useDashboard";
+import { SubscriptionCard } from "../components/SubscriptionCard";
 import {
   SPACING,
   TYPOGRAPHY,
   BORDER_RADIUS,
   SHADOWS,
   ThemeColors,
-} from '../theme'
-import { useTheme } from '../theme/ThemeContext'
-import { Subscription } from '../types'
+} from "../theme";
+import { useTheme } from "../theme/ThemeContext";
+import { Subscription } from "../types";
 
 interface MainScreenProps {
-  onAddPress: () => void
-  onOpenSettings: () => void
-  onOpenDetails: (id: string) => void
+  onAddPress: () => void;
+  onOpenSettings: () => void;
+  onOpenDetails: (id: string) => void;
 }
 
 export const MainScreen: React.FC<MainScreenProps> = ({
@@ -30,11 +30,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   onOpenSettings,
   onOpenDetails,
 }) => {
-  const { colors } = useTheme()
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { subscriptions, removeSubscription, totalMonthly, totalYearly } =
-    useDashboard()
+    useDashboard();
 
   const renderItem = useCallback(
     ({ item }: { item: Subscription }) => (
@@ -46,7 +46,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       </TouchableOpacity>
     ),
     [removeSubscription, onOpenDetails],
-  )
+  );
 
   return (
     <View style={styles.container}>
@@ -57,7 +57,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             style={[styles.iconBtn, { backgroundColor: colors.card }]}
           >
             <Ionicons
-              name='settings-outline'
+              name="settings-outline"
               size={24}
               color={colors.primary}
             />
@@ -66,7 +66,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
         <Text style={styles.headerTitle}>Мои подписки</Text>
 
-        <View style={[styles.headerSide, { alignItems: 'flex-end' }]}>
+        <View style={[styles.headerSide, { alignItems: "flex-end" }]}>
           <TouchableOpacity onPress={onAddPress} style={styles.iconBtnPrimary}>
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
@@ -88,6 +88,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         </View>
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={subscriptions}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
@@ -96,23 +97,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         />
       )}
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
       marginBottom: SPACING.md,
     },
     headerSide: { flex: 1 },
     headerTitle: {
       flex: 2,
-      textAlign: 'center',
+      textAlign: "center",
       ...TYPOGRAPHY.title,
       color: colors.textMain,
       fontSize: 22,
@@ -121,21 +122,21 @@ const createStyles = (colors: ThemeColors) =>
       width: 44,
       height: 44,
       borderRadius: 22,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     iconBtnPrimary: {
       width: 44,
       height: 44,
       borderRadius: 22,
       backgroundColor: colors.primary,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     addButtonText: {
       color: colors.white,
       fontSize: 28,
-      fontWeight: '300',
+      fontWeight: "300",
       marginTop: -2,
     },
     totalCard: {
@@ -148,21 +149,21 @@ const createStyles = (colors: ThemeColors) =>
     },
     totalLabel: {
       ...TYPOGRAPHY.caption,
-      color: 'rgba(255,255,255,0.8)',
+      color: "rgba(255,255,255,0.8)",
       marginBottom: SPACING.xs,
     },
     totalAmount: {
       fontSize: 36,
-      fontWeight: '800',
+      fontWeight: "800",
       color: colors.white,
       marginBottom: SPACING.sm,
     },
-    totalYearly: { ...TYPOGRAPHY.body, color: 'rgba(255,255,255,0.9)' },
-    listContent: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
+    totalYearly: { ...TYPOGRAPHY.body, color: "rgba(255,255,255,0.9)" },
+    listContent: { paddingHorizontal: SPACING.lg, paddingBottom: 100 },
     emptyState: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       padding: SPACING.xl,
     },
     emptyText: {
@@ -178,4 +179,4 @@ const createStyles = (colors: ThemeColors) =>
       ...SHADOWS.soft,
     },
     testButtonText: { ...TYPOGRAPHY.button, color: colors.primary },
-  })
+  });
