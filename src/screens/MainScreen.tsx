@@ -1,43 +1,89 @@
-import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react'
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Animated,
-} from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { Swipeable } from 'react-native-gesture-handler'
-import { useDashboard } from '../hooks/useDashboard'
-import { SubscriptionCard } from '../components/SubscriptionCard'
-import { UndoSnackbar } from '../components/ui/UndoSnackbar' // <-- Импорт нашей премиум-плашки
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import Animated, {
+  useAnimatedStyle,
+  SharedValue,
+} from "react-native-reanimated";
+import { useDashboard } from "../hooks/useDashboard";
+import { SubscriptionCard } from "../components/SubscriptionCard";
+import { UndoSnackbar } from "../components/ui/UndoSnackbar";
 import {
   SPACING,
   TYPOGRAPHY,
   BORDER_RADIUS,
   SHADOWS,
   ThemeColors,
-} from '../theme'
-import { useTheme } from '../theme/ThemeContext'
-import { Subscription } from '../types'
-import { useSubscriptionStore } from '../store/useSubscriptionStore'
+} from "../theme";
+import { useTheme } from "../theme/ThemeContext";
+import { Subscription } from "../types";
+import { useSubscriptionStore } from "../store/useSubscriptionStore";
 
 interface MainScreenProps {
-  onAddPress: () => void
-  onOpenSettings: () => void
-  onOpenDetails: (id: string) => void
+  onAddPress: () => void;
+  onOpenSettings: () => void;
+  onOpenDetails: (id: string) => void;
 }
 
-const UNDO_TIMEOUT_MS = 5000 // Вынесли константу из компонента
+const UNDO_TIMEOUT_MS = 5000;
+
+interface RightActionProps {
+  drag: SharedValue<number>;
+  item: Subscription;
+  onDelete: (item: Subscription) => void;
+  colors: ThemeColors;
+}
+
+// Иконка удаления без красного фона (стиль iOS)
+const RightAction = ({ drag, item, onDelete, colors }: RightActionProps) => {
+  const styleAnimation = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: drag.value + 60 }], // Ширина зоны свайпа
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styleAnimation,
+        {
+          width: 60,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => onDelete(item)}
+        activeOpacity={0.7}
+        style={{ padding: SPACING.sm }}
+      >
+        <Ionicons name="trash-outline" size={28} color={colors.danger} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 export const MainScreen: React.FC<MainScreenProps> = ({
   onAddPress,
   onOpenSettings,
   onOpenDetails,
 }) => {
-  const { colors } = useTheme()
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const {
     subscriptions,
@@ -45,86 +91,67 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     totalMonthly,
     totalWithTrials,
     totalYearly,
-  } = useDashboard()
-  const { addSubscriptionAndReturn } = useSubscriptionStore()
+  } = useDashboard();
+  const { addSubscriptionAndReturn } = useSubscriptionStore();
 
-  // --- ЛОГИКА UNDO ---
-  const [lastDeleted, setLastDeleted] = useState<Subscription | null>(null)
-  const [showUndo, setShowUndo] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [lastDeleted, setLastDeleted] = useState<Subscription | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [])
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleDelete = useCallback(
     (sub: Subscription) => {
-      setLastDeleted(sub)
-      removeSubscription(sub.id)
-      setShowUndo(true)
+      setLastDeleted(sub);
+      removeSubscription(sub.id);
+      setShowUndo(true);
 
-      if (timerRef.current) clearTimeout(timerRef.current)
+      if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
-        setShowUndo(false)
-      }, UNDO_TIMEOUT_MS)
+        setShowUndo(false);
+      }, UNDO_TIMEOUT_MS);
     },
     [removeSubscription],
-  )
+  );
 
   const handleUndo = useCallback(() => {
-    if (!lastDeleted) return
-    addSubscriptionAndReturn(lastDeleted)
-    setShowUndo(false)
-    if (timerRef.current) clearTimeout(timerRef.current)
-  }, [lastDeleted, addSubscriptionAndReturn])
-
-  // --- СВАЙП ДЛЯ УДАЛЕНИЯ ---
-  const renderRightActions = useCallback(
-    (item: Subscription, dragX: Animated.AnimatedInterpolation<number>) => {
-      const scale = dragX.interpolate({
-        inputRange: [-80, 0],
-        outputRange: [1, 0],
-        extrapolate: 'clamp',
-      })
-
-      return (
-        <TouchableOpacity
-          style={styles.swipeDeleteButton}
-          onPress={() => handleDelete(item)}
-          activeOpacity={0.8}
-        >
-          <Animated.View style={{ transform: [{ scale }] }}>
-            <Ionicons name='trash-outline' size={28} color={colors.white} />
-          </Animated.View>
-        </TouchableOpacity>
-      )
-    },
-    [handleDelete, colors, styles],
-  )
+    if (!lastDeleted) return;
+    addSubscriptionAndReturn(lastDeleted);
+    setShowUndo(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, [lastDeleted, addSubscriptionAndReturn]);
 
   const renderItem = useCallback(
     ({ item }: { item: Subscription }) => (
-      <Swipeable
-        renderRightActions={(progress, dragX) =>
-          renderRightActions(item, dragX)
-        }
-      >
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => onOpenDetails(item.id)}
+      <View style={{ marginBottom: SPACING.sm }}>
+        <ReanimatedSwipeable
+          renderRightActions={(prog, drag) => (
+            <RightAction
+              drag={drag}
+              item={item}
+              onDelete={handleDelete}
+              colors={colors}
+            />
+          )}
         >
-          <SubscriptionCard subscription={item} />
-        </TouchableOpacity>
-      </Swipeable>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => onOpenDetails(item.id)}
+          >
+            <SubscriptionCard subscription={item} />
+          </TouchableOpacity>
+        </ReanimatedSwipeable>
+      </View>
     ),
-    [onOpenDetails, renderRightActions],
-  )
+    [onOpenDetails, handleDelete, colors],
+  );
 
   return (
     <View style={styles.container}>
-      {/* --- ШАПКА --- */}
       <View style={styles.header}>
         <View style={styles.headerSide}>
           <TouchableOpacity
@@ -132,7 +159,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             style={[styles.iconBtn, { backgroundColor: colors.card }]}
           >
             <Ionicons
-              name='settings-outline'
+              name="settings-outline"
               size={24}
               color={colors.primary}
             />
@@ -141,27 +168,28 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
         <Text style={styles.headerTitle}>Мои подписки</Text>
 
-        <View style={[styles.headerSide, { alignItems: 'flex-end' }]}>
+        <View style={[styles.headerSide, { alignItems: "flex-end" }]}>
           <TouchableOpacity onPress={onAddPress} style={styles.iconBtnPrimary}>
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* --- КАРТОЧКА С СУММОЙ --- */}
       <View style={styles.totalCard}>
         <Text style={styles.totalLabel}>Расходы в месяц</Text>
         <Text style={styles.totalAmount}>{totalMonthly} ₽</Text>
         <Text style={styles.totalYearly}>Это {totalYearly} ₽ в год</Text>
 
         {totalWithTrials > totalMonthly && (
-          <Text style={styles.trialHint}>
-            С учетом триалов: {totalWithTrials} ₽
-          </Text>
+          <View style={{ width: "100%" }}>
+            <View style={styles.trialDivider} />
+            <Text style={styles.trialHint}>
+              С учетом оплаты после триалов: {totalWithTrials} ₽/мес
+            </Text>
+          </View>
         )}
       </View>
 
-      {/* --- СПИСОК ПОДПИСОК --- */}
       {subscriptions.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>У вас пока нет подписок</Text>
@@ -180,31 +208,30 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         />
       )}
 
-      {/* --- НАША ПРЕМИАЛЬНАЯ ПЛАШКА UNDO --- */}
       <UndoSnackbar
-        key={lastDeleted?.id || 'empty'}
+        key={lastDeleted?.id || "empty"}
         visible={showUndo}
         onUndo={handleUndo}
         duration={UNDO_TIMEOUT_MS}
       />
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
       marginBottom: SPACING.md,
     },
     headerSide: { flex: 1 },
     headerTitle: {
       flex: 2,
-      textAlign: 'center',
+      textAlign: "center",
       ...TYPOGRAPHY.title,
       color: colors.textMain,
       fontSize: 22,
@@ -213,21 +240,21 @@ const createStyles = (colors: ThemeColors) =>
       width: 44,
       height: 44,
       borderRadius: 22,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     iconBtnPrimary: {
       width: 44,
       height: 44,
       borderRadius: 22,
       backgroundColor: colors.primary,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     addButtonText: {
       color: colors.white,
       fontSize: 28,
-      fontWeight: '300',
+      fontWeight: "300",
       marginTop: -2,
     },
     totalCard: {
@@ -240,27 +267,33 @@ const createStyles = (colors: ThemeColors) =>
     },
     totalLabel: {
       ...TYPOGRAPHY.caption,
-      color: 'rgba(255,255,255,0.8)',
+      color: "rgba(255,255,255,0.8)",
       marginBottom: SPACING.xs,
     },
     totalAmount: {
       fontSize: 36,
-      fontWeight: '800',
+      fontWeight: "800",
       color: colors.white,
       marginBottom: SPACING.sm,
     },
-    totalYearly: { ...TYPOGRAPHY.body, color: 'rgba(255,255,255,0.9)' },
+    totalYearly: { ...TYPOGRAPHY.body, color: "rgba(255,255,255,0.9)" },
+    trialDivider: {
+      height: 1,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      marginVertical: SPACING.sm,
+      width: "100%",
+    },
     trialHint: {
       ...TYPOGRAPHY.caption,
-      color: 'rgba(255,255,255,0.7)',
-      marginTop: SPACING.sm,
-      fontStyle: 'italic',
+      color: "rgba(255,255,255,0.7)",
+      marginTop: SPACING.xs,
+      fontStyle: "italic",
     },
     listContent: { paddingHorizontal: SPACING.lg, paddingBottom: 100 },
     emptyState: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       padding: SPACING.xl,
     },
     emptyText: {
@@ -276,17 +309,4 @@ const createStyles = (colors: ThemeColors) =>
       ...SHADOWS.soft,
     },
     testButtonText: { ...TYPOGRAPHY.button, color: colors.primary },
-
-    // Стиль для красной кнопки удаления при свайпе
-    swipeDeleteButton: {
-      backgroundColor: colors.danger,
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: 80,
-      height: '85%',
-      marginTop: SPACING.xs,
-      borderRadius: BORDER_RADIUS.lg,
-      marginLeft: SPACING.sm,
-      marginBottom: SPACING.sm,
-    },
-  })
+  });

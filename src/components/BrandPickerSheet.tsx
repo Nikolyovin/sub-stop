@@ -39,7 +39,7 @@ export const BrandPickerSheet = React.forwardRef<
   const snapPoints = useMemo(() => ["50%", "85%"], []);
 
   useImperativeHandle(ref, () => ({
-    open: () => sheetRef.current?.present(), // <-- Вызываем present()
+    open: () => sheetRef.current?.present(),
   }));
 
   const filteredBrands = useMemo(() => {
@@ -64,7 +64,24 @@ export const BrandPickerSheet = React.forwardRef<
   const handleSelect = (name: string) => {
     onSelect(name);
     setSearch("");
-    sheetRef.current?.dismiss(); // <-- Вызываем dismiss()
+    sheetRef.current?.dismiss();
+  };
+
+  // Умный рендер иконок
+  const renderIcon = (brand: any, size: number) => {
+    if (brand.id === "telegram") {
+      return <Ionicons name="paper-plane" size={size} color={brand.color} />;
+    }
+    if (brand.id === "vk") {
+      return <Ionicons name="logo-vk" size={size} color={brand.color} />;
+    }
+    return (
+      <MaterialCommunityIcons
+        name={brand.icon as any}
+        size={size}
+        color={brand.color}
+      />
+    );
   };
 
   return (
@@ -105,11 +122,7 @@ export const BrandPickerSheet = React.forwardRef<
                     { backgroundColor: `${brand.color}15` },
                   ]}
                 >
-                  <MaterialCommunityIcons
-                    name={brand.icon as any}
-                    size={28}
-                    color={brand.color}
-                  />
+                  {renderIcon(brand, 28)}
                 </View>
                 <Text style={styles.brandName} numberOfLines={1}>
                   {brand.name}
