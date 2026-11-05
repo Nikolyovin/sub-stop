@@ -6,9 +6,12 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
+  Platform,
 } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { useOnboarding, ONBOARDING_DATA } from '../hooks/useOnboarding'
 import { OnboardingSlide } from '../components/ui/OnboardingSlide'
+import { AnimatedDot } from '../components/ui/AnimatedDot' // <-- Импорт нашего нового компонента
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../theme'
 import { useTheme } from '../theme/ThemeContext'
 
@@ -32,10 +35,16 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       setCurrentIndex(viewableItems[0].index || 0)
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      }
     }
   }).current
 
   const handleNext = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    }
     if (!isLastSlide) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 })
     } else {
@@ -43,8 +52,27 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     }
   }
 
+  const handleSkip = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    }
+    onFinish()
+  }
+
   return (
     <View style={styles.container}>
+      {/* Кнопка Пропустить */}
+      <View style={styles.skipContainer}>
+        {!isLastSlide && (
+          <TouchableOpacity
+            onPress={handleSkip}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Text style={styles.skipText}>Пропустить</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
         ref={flatListRef}
         data={ONBOARDING_DATA}
@@ -65,14 +93,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         )}
       />
 
+      {/* Точки-индикаторы */}
       <View style={styles.pagination}>
         {ONBOARDING_DATA.map((_, index) => (
-          <View
+          <AnimatedDot
             key={index}
-            style={[
-              styles.dot,
-              index === currentIndex ? styles.activeDot : styles.inactiveDot,
-            ]}
+            isActive={index === currentIndex}
+            colors={colors}
           />
         ))}
       </View>
@@ -92,15 +119,24 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, paddingTop: 80 },
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
+    skipContainer: {
+      height: 40,
+      paddingHorizontal: SPACING.xl,
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+    },
+    skipText: {
+      ...TYPOGRAPHY.button,
+      color: colors.textSecondary,
+      fontSize: 16,
+    },
     pagination: {
       flexDirection: 'row',
       justifyContent: 'center',
       marginBottom: SPACING.xl,
+      alignItems: 'center',
     },
-    dot: { width: 8, height: 8, borderRadius: 4, marginHorizontal: SPACING.xs },
-    activeDot: { backgroundColor: colors.primary },
-    inactiveDot: { backgroundColor: colors.border },
     button: {
       backgroundColor: colors.primary,
       marginHorizontal: SPACING.xl,
@@ -109,5 +145,9 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: BORDER_RADIUS.round,
       alignItems: 'center',
     },
-    buttonText: { ...TYPOGRAPHY.button, color: colors.white, fontSize: 18 },
+    buttonText: {
+      ...TYPOGRAPHY.button,
+      color: colors.white,
+      fontSize: 18,
+    },
   })

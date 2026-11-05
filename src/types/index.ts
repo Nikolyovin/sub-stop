@@ -5,16 +5,17 @@ export type Category =
   | 'sport'
   | 'other'
 
+export type SubscriptionStatus = 'active' | 'trial'
+
 export interface Subscription {
   id: string
   name: string
   price: number
   currency: string
   billingCycle: 'monthly' | 'yearly'
-  nextPaymentDate: string
-  category: Category // <-- Теперь это строгий тип
-  isTrial?: boolean
-  trialEndDate?: string
+  nextPaymentDate: string // Для триала это дата ПЕРВОГО списания
+  category: Category
+  status: SubscriptionStatus
 }
 
 // Справочник категорий для UI
