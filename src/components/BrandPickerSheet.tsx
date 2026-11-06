@@ -67,7 +67,7 @@ export const BrandPickerSheet = React.forwardRef<
     sheetRef.current?.dismiss();
   };
 
-  // Умный рендер иконок
+  // Умный рендер иконок (чтобы VK и Telegram точно отображались)
   const renderIcon = (brand: any, size: number) => {
     if (brand.id === "telegram") {
       return <Ionicons name="paper-plane" size={size} color={brand.color} />;
@@ -93,6 +93,9 @@ export const BrandPickerSheet = React.forwardRef<
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: colors.background }}
       handleIndicatorStyle={{ backgroundColor: colors.border, width: 40 }}
+      // Эти два пропса решают проблему с клавиатурой
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
     >
       <View style={styles.content}>
         <Text style={styles.title}>Выберите сервис</Text>
@@ -108,7 +111,11 @@ export const BrandPickerSheet = React.forwardRef<
           />
         </View>
 
-        <BottomSheetScrollView showsVerticalScrollIndicator={false}>
+        <BottomSheetScrollView
+          showsVerticalScrollIndicator={false}
+          // Этот пропс решает проблему с двойным нажатием
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.grid}>
             {filteredBrands.map((brand) => (
               <TouchableOpacity
