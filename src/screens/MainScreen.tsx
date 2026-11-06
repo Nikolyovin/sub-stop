@@ -47,23 +47,16 @@ interface RightActionProps {
   colors: ThemeColors;
 }
 
-// Иконка удаления без красного фона (стиль iOS)
 const RightAction = ({ drag, item, onDelete, colors }: RightActionProps) => {
   const styleAnimation = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: drag.value + 60 }], // Ширина зоны свайпа
-    };
+    return { transform: [{ translateX: drag.value + 60 }] };
   });
 
   return (
     <Animated.View
       style={[
         styleAnimation,
-        {
-          width: 60,
-          justifyContent: "center",
-          alignItems: "center",
-        },
+        { width: 60, justifyContent: "center", alignItems: "center" },
       ]}
     >
       <TouchableOpacity
@@ -95,6 +88,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const { addSubscriptionAndReturn } = useSubscriptionStore();
 
   const [lastDeleted, setLastDeleted] = useState<Subscription | null>(null);
+  const [lastDeletedIndex, setLastDeletedIndex] = useState<number>(-1); // <-- Храним индекс
   const [showUndo, setShowUndo] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -106,6 +100,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const handleDelete = useCallback(
     (sub: Subscription) => {
+      // Находим индекс удаляемой подписки до её удаления
+      const currentIndex = subscriptions.findIndex((s) => s.id === sub.id);
+
+      setLastDeletedIndex(currentIndex); // <-- Сохраняем индекс
       setLastDeleted(sub);
       removeSubscription(sub.id);
       setShowUndo(true);
@@ -115,15 +113,18 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         setShowUndo(false);
       }, UNDO_TIMEOUT_MS);
     },
-    [removeSubscription],
+    [removeSubscription, subscriptions], // <-- Добавили subscriptions в зависимости
   );
 
   const handleUndo = useCallback(() => {
     if (!lastDeleted) return;
-    addSubscriptionAndReturn(lastDeleted);
+
+    // Восстанавливаем по сохраненному индексу
+    addSubscriptionAndReturn(lastDeleted, lastDeletedIndex);
+
     setShowUndo(false);
     if (timerRef.current) clearTimeout(timerRef.current);
-  }, [lastDeleted, addSubscriptionAndReturn]);
+  }, [lastDeleted, lastDeletedIndex, addSubscriptionAndReturn]); // <-- Добавили lastDeletedIndex
 
   const renderItem = useCallback(
     ({ item }: { item: Subscription }) => (
@@ -150,8 +151,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     [onOpenDetails, handleDelete, colors],
   );
 
+  // ... JSX остается полностью без изменений ...
   return (
     <View style={styles.container}>
+      {/* ... header, totalCard, FlatList ... */}
       <View style={styles.header}>
         <View style={styles.headerSide}>
           <TouchableOpacity
@@ -165,9 +168,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             />
           </TouchableOpacity>
         </View>
-
         <Text style={styles.headerTitle}>Мои подписки</Text>
-
         <View style={[styles.headerSide, { alignItems: "flex-end" }]}>
           <TouchableOpacity onPress={onAddPress} style={styles.iconBtnPrimary}>
             <Text style={styles.addButtonText}>+</Text>
@@ -218,6 +219,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   );
 };
 
+// ... createStyles остается без изменений ...
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
