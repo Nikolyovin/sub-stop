@@ -11,13 +11,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useSubscriptionDetails } from "../hooks/useSubscriptionDetails";
-import {
-  SPACING,
-  TYPOGRAPHY,
-  BORDER_RADIUS,
-  SHADOWS,
-  ThemeColors,
-} from "../theme";
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 import { Subscription } from "../types";
 import { HeaderBackButton } from "../components/ui/HeaderBackButton";
@@ -35,7 +29,7 @@ export const SubscriptionDetailsScreen: React.FC<
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { subscription, categoryData, costs, removeSubscription } =
+  const { subscription, categoryData, costs, cycleInfo, removeSubscription } =
     useSubscriptionDetails(subscriptionId);
 
   if (!subscription || !categoryData) {
@@ -51,6 +45,7 @@ export const SubscriptionDetailsScreen: React.FC<
 
   const brand = getBrandData(subscription.name);
 
+  // Возвращаем полный формат даты с годом
   const formattedDate = format(
     new Date(subscription.nextPaymentDate),
     "d MMMM yyyy",
@@ -61,14 +56,11 @@ export const SubscriptionDetailsScreen: React.FC<
     subscription.status === "trial" &&
     new Date(subscription.nextPaymentDate) < new Date();
 
-  // Умный рендер иконки
   const renderBrandIcon = (size: number) => {
-    if (brand.id === "telegram") {
+    if (brand.id === "telegram")
       return <Ionicons name="paper-plane" size={size} color={brand.color} />;
-    }
-    if (brand.id === "vk") {
+    if (brand.id === "vk")
       return <Ionicons name="logo-vk" size={size} color={brand.color} />;
-    }
     return (
       <MaterialCommunityIcons
         name={brand.icon as any}
@@ -104,7 +96,10 @@ export const SubscriptionDetailsScreen: React.FC<
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.heroCard}>
           <View
             style={[
@@ -112,15 +107,14 @@ export const SubscriptionDetailsScreen: React.FC<
               { backgroundColor: `${brand.color}15` },
             ]}
           >
-            {renderBrandIcon(40)}
+            {renderBrandIcon(36)}
           </View>
-
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               gap: 8,
-              marginBottom: 4,
+              marginBottom: 2,
             }}
           >
             <Text style={styles.subName}>{subscription.name}</Text>
@@ -130,7 +124,6 @@ export const SubscriptionDetailsScreen: React.FC<
               </View>
             )}
           </View>
-
           <Text style={styles.subCategory}>{categoryData.label}</Text>
         </View>
 
@@ -142,33 +135,56 @@ export const SubscriptionDetailsScreen: React.FC<
               <Text style={[styles.bannerTitle, { color: colors.danger }]}>
                 Пробный период закончился
               </Text>
-              <Text
-                style={[styles.bannerText, { color: colors.textSecondary }]}
-              >
-                Если вы хотите продолжить пользоваться сервисом, обновите статус
-                и укажите дату следующего платежа.
-              </Text>
             </View>
             <TouchableOpacity
               style={[styles.bannerButton, { backgroundColor: colors.danger }]}
               onPress={() => onEdit(subscription)}
             >
-              <Text style={styles.bannerButtonText}>Изменить</Text>
+              <Text style={styles.bannerButtonText}>Обновить</Text>
             </TouchableOpacity>
           </View>
         )}
 
         <View style={styles.statsGrid}>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>В месяц</Text>
+            <Text style={styles.statLabel}>
+              {subscription.status === "trial" ? "Сейчас" : "В месяц"}
+            </Text>
             <Text style={styles.statValue}>{costs.monthly} ₽</Text>
           </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>В год</Text>
-            <Text style={styles.statValue}>{costs.yearly} ₽</Text>
+
+          {subscription.status === "trial" &&
+          costs.futureMonthly > costs.monthly ? (
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>После триала</Text>
+              <Text style={[styles.statValue, { color: colors.danger }]}>
+                {costs.futureMonthly} ₽
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>В год</Text>
+              <Text style={styles.statValue}>{costs.yearly} ₽</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.progressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>До следующего платежа</Text>
+            <Text style={styles.progressValue}>{cycleInfo.daysLeft} дн.</Text>
+          </View>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${Math.max(5, cycleInfo.progress)}%` },
+              ]}
+            />
           </View>
         </View>
 
+        {/* 🚀 РАЗДЕЛЬНЫЕ СТРОКИ (как было) */}
         <View style={styles.infoRow}>
           <Ionicons
             name="calendar-outline"
@@ -201,6 +217,25 @@ export const SubscriptionDetailsScreen: React.FC<
           </View>
         </View>
 
+        {subscription.note ? (
+          <TouchableOpacity
+            style={styles.noteCard}
+            activeOpacity={0.7}
+            onPress={() => onEdit(subscription)}
+          >
+            <Ionicons
+              name="document-text-outline"
+              size={24}
+              color={colors.textSecondary}
+            />
+            <View style={styles.noteTextContainer}>
+              <Text style={styles.noteLabel}>Заметка</Text>
+              <Text style={styles.noteText}>{subscription.note}</Text>
+            </View>
+            <Ionicons name="pencil" size={16} color={colors.border} />
+          </TouchableOpacity>
+        ) : null}
+
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: `${colors.primary}15` }]}
           onPress={() => onEdit(subscription)}
@@ -225,13 +260,14 @@ export const SubscriptionDetailsScreen: React.FC<
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
+    // Стили остаются прежними
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: SPACING.lg,
-      marginBottom: SPACING.xl,
+      marginBottom: SPACING.md,
     },
     headerTitle: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
     placeholder: { width: 44 },
@@ -240,22 +276,22 @@ const createStyles = (colors: ThemeColors) =>
     heroCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.xl,
-      padding: SPACING.xl,
-      alignItems: "center",
-      marginBottom: SPACING.lg,
-      borderWidth: 1,
-      borderColor: colors.border, // Добавили рамку вместо тени
-    },
-    iconWrapper: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      justifyContent: "center",
+      padding: SPACING.lg,
       alignItems: "center",
       marginBottom: SPACING.md,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
-    subName: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 24 },
-    subCategory: { ...TYPOGRAPHY.body, color: colors.textSecondary },
+    iconWrapper: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: SPACING.sm,
+    },
+    subName: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 22 },
+    subCategory: { ...TYPOGRAPHY.caption, color: colors.textSecondary },
     trialBadge: {
       backgroundColor: "#F59E0B",
       paddingHorizontal: 6,
@@ -263,24 +299,15 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 4,
     },
     trialBadgeText: { fontSize: 10, color: "#fff", fontWeight: "bold" },
-
     banner: {
       flexDirection: "row",
       alignItems: "center",
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.lg,
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.md,
       gap: SPACING.md,
     },
-    bannerTitle: {
-      ...TYPOGRAPHY.subtitle,
-      fontSize: 16,
-      marginBottom: 4,
-    },
-    bannerText: {
-      ...TYPOGRAPHY.caption,
-      lineHeight: 18,
-    },
+    bannerTitle: { ...TYPOGRAPHY.subtitle, fontSize: 16 },
     bannerButton: {
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.sm,
@@ -291,11 +318,10 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.white,
       fontSize: 14,
     },
-
     statsGrid: {
       flexDirection: "row",
       gap: SPACING.md,
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.md,
     },
     statBox: {
       flex: 1,
@@ -310,7 +336,42 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       marginBottom: SPACING.xs,
     },
-    statValue: { fontSize: 22, fontWeight: "bold", color: colors.primary },
+    statValue: { fontSize: 20, fontWeight: "bold", color: colors.primary },
+    progressCard: {
+      backgroundColor: colors.card,
+      borderRadius: BORDER_RADIUS.lg,
+      padding: SPACING.md,
+      marginBottom: SPACING.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    progressHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: SPACING.sm,
+    },
+    progressTitle: {
+      ...TYPOGRAPHY.body,
+      color: colors.textMain,
+      fontWeight: "500",
+    },
+    progressValue: {
+      ...TYPOGRAPHY.subtitle,
+      color: colors.primary,
+      fontSize: 16,
+    },
+    progressBarBg: {
+      height: 8,
+      backgroundColor: colors.background,
+      borderRadius: 4,
+      overflow: "hidden",
+    },
+    progressBarFill: {
+      height: "100%",
+      backgroundColor: colors.primary,
+      borderRadius: 4,
+    },
     infoRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -328,6 +389,29 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
       fontSize: 16,
       marginTop: 2,
+    },
+    noteCard: {
+      flexDirection: "row",
+      backgroundColor: colors.card,
+      borderRadius: BORDER_RADIUS.lg,
+      padding: SPACING.md,
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: SPACING.sm,
+      alignItems: "center",
+    },
+    noteTextContainer: { flex: 1 },
+    noteLabel: {
+      ...TYPOGRAPHY.caption,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    noteText: {
+      ...TYPOGRAPHY.body,
+      color: colors.textMain,
+      fontStyle: "italic",
     },
     actionBtn: {
       padding: SPACING.md,

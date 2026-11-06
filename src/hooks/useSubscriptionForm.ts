@@ -33,12 +33,13 @@ export const useSubscriptionForm = (
   const [category, setCategory] = useState<Category>(
     initialData?.category || "entertainment",
   );
+  // 🚀 ДОБАВИЛИ СТЕЙТ ДЛЯ ЗАМЕТКИ
+  const [note, setNote] = useState(initialData?.note || "");
 
   useEffect(() => {
     requestNotificationPermissions();
   }, []);
 
-  // Валидация: если выбран триал, то регулярная цена обязательна
   const isRegularPriceValid =
     status === "active" || (status === "trial" && Number(regularPrice) > 0);
   const isValid =
@@ -56,6 +57,7 @@ export const useSubscriptionForm = (
       nextPaymentDate: format(date, "yyyy-MM-dd"),
       category,
       status,
+      note: note.trim(), // 🚀 ДОБАВИЛИ ЗАМЕТКУ
     };
 
     if (initialData) {
@@ -89,6 +91,8 @@ export const useSubscriptionForm = (
     setCategory,
     status,
     setStatus,
+    note, // 🚀 ВОЗВРАЩАЕМ
+    setNote, // 🚀 ВОЗВРАЩАЕМ
     isValid,
     save,
     isEditing: !!initialData,

@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,6 +48,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Компактная шапка */}
       <View style={styles.header}>
         <HeaderBackButton onPress={onBack} />
         <Text style={styles.headerTitle}>
@@ -54,143 +57,157 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.form}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        // 🚀 Настройки для правильной работы на Android и iOS
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
-        {/* 1. Название */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Название</Text>
-          <TouchableOpacity
-            style={styles.selectorInput}
-            onPress={() => bottomSheetRef.current?.open()}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={
-                form.name
-                  ? styles.selectorTextActive
-                  : styles.selectorTextPlaceholder
-              }
+        <ScrollView
+          contentContainerStyle={styles.form}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Название</Text>
+            <TouchableOpacity
+              style={styles.selectorInput}
+              onPress={() => bottomSheetRef.current?.open()}
+              activeOpacity={0.7}
             >
-              {form.name || "Выберите или введите название"}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={20}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
-        </View>
+              <Text
+                style={
+                  form.name
+                    ? styles.selectorTextActive
+                    : styles.selectorTextPlaceholder
+                }
+              >
+                {form.name || "Выберите или введите название"}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
 
-        {/* 2. Статус (перенесли наверх) */}
-        <Text style={styles.label}>Статус подписки</Text>
-        <View style={styles.statusRow}>
-          <TouchableOpacity
-            style={[
-              styles.statusBtn,
-              form.status === "active" && styles.statusBtnActive,
-            ]}
-            onPress={() => form.setStatus("active")}
-          >
-            <Text
-              style={
-                form.status === "active"
-                  ? styles.statusTextActive
-                  : styles.statusText
-              }
+          <Text style={styles.label}>Статус подписки</Text>
+          <View style={styles.statusRow}>
+            <TouchableOpacity
+              style={[
+                styles.statusBtn,
+                form.status === "active" && styles.statusBtnActive,
+              ]}
+              onPress={() => form.setStatus("active")}
             >
-              Платно
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.statusBtn,
-              form.status === "trial" && styles.statusBtnActive,
-            ]}
-            onPress={() => form.setStatus("trial")}
-          >
-            <Text
-              style={
-                form.status === "trial"
-                  ? styles.statusTextActive
-                  : styles.statusText
-              }
+              <Text
+                style={
+                  form.status === "active"
+                    ? styles.statusTextActive
+                    : styles.statusText
+                }
+              >
+                Платно
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.statusBtn,
+                form.status === "trial" && styles.statusBtnActive,
+              ]}
+              onPress={() => form.setStatus("trial")}
             >
-              Триал
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Text
+                style={
+                  form.status === "trial"
+                    ? styles.statusTextActive
+                    : styles.statusText
+                }
+              >
+                Триал
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* 3. Стоимость (зависит от статуса) */}
-        <InputField
-          label={
-            form.status === "trial"
-              ? "Стоимость во время промо (₽)"
-              : "Стоимость (₽)"
-          }
-          value={form.price}
-          onChangeText={form.setPrice}
-          placeholder="0"
-          keyboardType="numeric"
-        />
-
-        {/* 4. Регулярная стоимость (только для триала) */}
-        {form.status === "trial" && (
           <InputField
-            label="Стоимость после окончания (₽)"
-            value={form.regularPrice}
-            onChangeText={form.setRegularPrice}
-            placeholder="Например, 499"
+            label={
+              form.status === "trial"
+                ? "Стоимость во время промо (₽)"
+                : "Стоимость (₽)"
+            }
+            value={form.price}
+            onChangeText={form.setPrice}
+            placeholder="0"
             keyboardType="numeric"
           />
-        )}
 
-        {/* 5. Периодичность */}
-        <Text style={styles.label}>Периодичность</Text>
-        <CycleSelector value={form.cycle} onChange={form.setCycle} />
+          {form.status === "trial" && (
+            <InputField
+              label="Стоимость после окончания (₽)"
+              value={form.regularPrice}
+              onChangeText={form.setRegularPrice}
+              placeholder="Например, 599"
+              keyboardType="numeric"
+            />
+          )}
 
-        {/* 6. Категория */}
-        <CategorySelector
-          selected={form.category}
-          onSelect={form.setCategory}
-        />
+          <Text style={styles.label}>Периодичность</Text>
+          <CycleSelector value={form.cycle} onChange={form.setCycle} />
 
-        {/* 7. Дата */}
-        <Text style={styles.label}>
-          {form.status === "trial"
-            ? "Дата окончания триала (первое списание)"
-            : "Дата следующего списания"}
-        </Text>
-        <TouchableOpacity
-          style={styles.dateInput}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Text style={styles.dateText}>{format(form.date, "dd.MM.yyyy")}</Text>
-        </TouchableOpacity>
-
-        {showDatePicker && (
-          <DateTimePicker
-            value={form.date}
-            mode="date"
-            display="default"
-            onValueChange={onDateChange}
-            onDismiss={() => setShowDatePicker(false)}
-            minimumDate={new Date()}
+          <CategorySelector
+            selected={form.category}
+            onSelect={form.setCategory}
           />
-        )}
 
-        <TouchableOpacity
-          style={[styles.saveBtn, !form.isValid && styles.saveBtnDisabled]}
-          onPress={form.save}
-          disabled={!form.isValid}
-        >
-          <Text style={styles.saveBtnText}>
-            {form.isEditing ? "Сохранить изменения" : "Добавить"}
+          <Text style={styles.label}>
+            {form.status === "trial"
+              ? "Дата окончания триала (первое списание)"
+              : "Дата следующего списания"}
           </Text>
-        </TouchableOpacity>
-      </ScrollView>
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={styles.dateText}>
+              {format(form.date, "dd.MM.yyyy")}
+            </Text>
+          </TouchableOpacity>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={form.date}
+              mode="date"
+              display="default"
+              onValueChange={onDateChange}
+              onDismiss={() => setShowDatePicker(false)}
+              minimumDate={new Date()}
+            />
+          )}
+
+          <Text style={styles.label}>Заметка (необязательно)</Text>
+          <TextInput
+            style={[styles.dateInput, styles.noteInput]}
+            placeholder="Например, аккаунт или когда отменить"
+            placeholderTextColor={colors.textSecondary}
+            value={form.note}
+            onChangeText={form.setNote}
+            multiline
+            maxLength={100}
+          />
+
+          {/* Кнопка теперь всегда доступна, так как внизу есть запас места */}
+          <TouchableOpacity
+            style={[styles.saveBtn, !form.isValid && styles.saveBtnDisabled]}
+            onPress={form.save}
+            disabled={!form.isValid}
+          >
+            <Text style={styles.saveBtnText}>
+              {form.isEditing ? "Сохранить изменения" : "Добавить"}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <BrandPickerSheet
         ref={bottomSheetRef}
@@ -203,17 +220,18 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 }, // 🚀 Уменьшили отступ сверху
     header: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: SPACING.lg,
-      marginBottom: SPACING.xl,
+      marginBottom: SPACING.md, // 🚀 Уменьшили отступ снизу
     },
     headerTitle: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
     placeholder: { width: 44 },
-    form: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
+    // 🚀 Добавили огромный paddingBottom, чтобы было куда скроллить над клавиатурой
+    form: { paddingHorizontal: SPACING.lg, paddingBottom: 350 },
     label: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
@@ -229,7 +247,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: SPACING.md,
       borderWidth: 1,
       borderColor: colors.border,
-      marginBottom: SPACING.md, // Добавили отступ снизу
+      marginBottom: SPACING.md,
     },
     selectorTextPlaceholder: { fontSize: 16, color: colors.textSecondary },
     selectorTextActive: {
@@ -274,6 +292,12 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.md,
     },
     dateText: { fontSize: 16, color: colors.textMain },
+    noteInput: {
+      height: 80,
+      textAlignVertical: "top",
+      fontSize: 16,
+      color: colors.textMain,
+    },
     saveBtn: {
       backgroundColor: colors.primary,
       padding: SPACING.md,

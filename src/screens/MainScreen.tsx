@@ -232,7 +232,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
       flexDirection: "row",
       justifyContent: "space-between",

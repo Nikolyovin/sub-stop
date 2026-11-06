@@ -14,13 +14,14 @@ export type SubscriptionStatus = "active" | "trial";
 export interface Subscription {
   id: string;
   name: string;
-  price: number; // Текущая цена (например, 299 или 0)
-  regularPrice?: number; // Цена после окончания промо (например, 499)
+  price: number;
+  regularPrice?: number;
   currency: string;
   billingCycle: "monthly" | "yearly";
   nextPaymentDate: string;
   category: Category;
   status: SubscriptionStatus;
+  note?: string; // <-- ДОБАВИЛИ
 }
 
 // Справочник категорий для UI

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -7,24 +7,24 @@ import {
   ScrollView,
   Linking,
   Alert,
-} from 'react-native'
-import Constants from 'expo-constants'
-import { useTheme } from '../theme/ThemeContext'
-import { useSettingsStore } from '../store/useSettingsStore'
-import { SettingsRow } from '../components/ui/SettingsRow'
-import { HeaderBackButton } from '../components/ui/HeaderBackButton'
-import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from '../theme'
+} from "react-native";
+import Constants from "expo-constants";
+import { useTheme } from "../theme/ThemeContext";
+import { useSettingsStore } from "../store/useSettingsStore";
+import { SettingsRow } from "../components/ui/SettingsRow";
+import { HeaderBackButton } from "../components/ui/HeaderBackButton";
+import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from "../theme";
 import {
   sendTestNotification,
   requestNotificationPermissions,
-} from '../services/notificationService'
+} from "../services/notificationService";
 
 interface SettingsScreenProps {
-  onBack: () => void
+  onBack: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
-  const { theme, toggleTheme, colors } = useTheme()
+  const { theme, toggleTheme, colors } = useTheme();
 
   // Достаем все нужные настройки из стора
   const {
@@ -32,20 +32,20 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
     toggleNotifications,
     notificationDaysBefore,
     setNotificationDaysBefore,
-  } = useSettingsStore()
+  } = useSettingsStore();
 
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Функция для тестового уведомления
   const handleTestNotification = async () => {
-    const hasPermission = await requestNotificationPermissions()
+    const hasPermission = await requestNotificationPermissions();
     if (hasPermission) {
-      await sendTestNotification()
-      Alert.alert('Успех', 'Тестовое уведомление отправлено!')
+      await sendTestNotification();
+      Alert.alert("Успех", "Тестовое уведомление отправлено!");
     } else {
-      Alert.alert('Ошибка', 'Вы не дали разрешение на уведомления.')
+      Alert.alert("Ошибка", "Вы не дали разрешение на уведомления.");
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -60,8 +60,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
         <Text style={styles.sectionTitle}>Основные</Text>
 
         <SettingsRow
-          icon='notifications-outline'
-          title='Уведомления'
+          icon="notifications-outline"
+          title="Уведомления"
           value={notificationsEnabled}
           onToggle={toggleNotifications}
         />
@@ -95,9 +95,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
         )}
 
         <SettingsRow
-          icon='moon-outline'
-          title='Темная тема'
-          value={theme === 'dark'}
+          icon="moon-outline"
+          title="Темная тема"
+          value={theme === "dark"}
           onToggle={toggleTheme}
         />
 
@@ -118,30 +118,30 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
         <Text style={styles.sectionTitle}>О приложении</Text>
 
         <SettingsRow
-          icon='shield-checkmark-outline'
-          title='Политика конфиденциальности'
+          icon="shield-checkmark-outline"
+          title="Политика конфиденциальности"
           onPress={() =>
-            Linking.openURL('https://nikolyovin.github.io/sub-stop-privacy/')
+            Linking.openURL("https://nikolyovin.github.io/sub-stop-privacy/")
           }
         />
 
         <Text style={styles.versionText}>
-          Версия {Constants.expoConfig?.version || '1.0.0'}
+          Версия {Constants.expoConfig?.version || "1.0.0"}
         </Text>
       </ScrollView>
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
-      marginBottom: SPACING.xl,
+      marginBottom: SPACING.lg,
     },
     placeholder: { width: 44 }, // Ширина под размер кнопки назад
     headerTitle: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 22 },
@@ -150,7 +150,7 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.subtitle,
       color: colors.textSecondary,
       fontSize: 14,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       marginTop: SPACING.lg,
       marginBottom: SPACING.sm,
     },
@@ -167,7 +167,7 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.sm,
     },
     pillsContainer: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: SPACING.sm,
     },
     pill: {
@@ -175,7 +175,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: SPACING.sm,
       borderRadius: BORDER_RADIUS.round,
       backgroundColor: colors.background,
-      alignItems: 'center',
+      alignItems: "center",
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -184,13 +184,13 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.primary,
     },
     pillText: { ...TYPOGRAPHY.body, color: colors.textMain, fontSize: 14 },
-    pillTextActive: { color: colors.white, fontWeight: 'bold' },
+    pillTextActive: { color: colors.white, fontWeight: "bold" },
     // Стиль для кнопки тестирования
     testBtn: {
       backgroundColor: `${colors.primary}15`,
       padding: SPACING.md,
       borderRadius: 16,
-      alignItems: 'center',
+      alignItems: "center",
     },
     testBtnText: {
       ...TYPOGRAPHY.button,
@@ -200,7 +200,7 @@ const createStyles = (colors: ThemeColors) =>
     versionText: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      textAlign: 'center',
+      textAlign: "center",
       marginTop: SPACING.xl,
     },
-  })
+  });
