@@ -4,10 +4,13 @@ import { useSubscriptionStore } from "../store/useSubscriptionStore";
 export const useDashboard = () => {
   const { subscriptions, removeSubscription } = useSubscriptionStore();
 
-  // Реальные траты (только активные подписки)
+  // Реальные траты (активные + платные триалы)
   const totalMonthly = useMemo(() => {
     return subscriptions
-      .filter((sub) => sub.status === "active")
+      .filter(
+        (sub) =>
+          sub.status === "active" || (sub.status === "trial" && sub.price > 0),
+      )
       .reduce((sum, sub) => {
         const monthlyCost =
           sub.billingCycle === "yearly" ? sub.price / 12 : sub.price;
@@ -15,13 +18,16 @@ export const useDashboard = () => {
       }, 0);
   }, [subscriptions]);
 
-  // Потенциальные траты (активные + триалы)
+  // Потенциальные траты (активные + триалы по их будущей цене)
   const totalWithTrials = useMemo(() => {
     return subscriptions.reduce((sum, sub) => {
-      // Берем либо текущую цену, либо будущую (если есть регулярная)
-      const futurePrice = sub.regularPrice || sub.price;
+      // Если это триал, берем regularPrice (будущую цену), иначе текущую
+      const priceToUse =
+        sub.status === "trial" && sub.regularPrice
+          ? sub.regularPrice
+          : sub.price;
       const monthlyCost =
-        sub.billingCycle === "yearly" ? futurePrice / 12 : futurePrice;
+        sub.billingCycle === "yearly" ? priceToUse / 12 : priceToUse;
       return sum + monthlyCost;
     }, 0);
   }, [subscriptions]);

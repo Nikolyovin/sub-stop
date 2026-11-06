@@ -36,6 +36,7 @@ interface MainScreenProps {
   onAddPress: () => void;
   onOpenSettings: () => void;
   onOpenDetails: (id: string) => void;
+  onOpenStatistics: () => void;
 }
 
 const UNDO_TIMEOUT_MS = 5000;
@@ -74,6 +75,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   onAddPress,
   onOpenSettings,
   onOpenDetails,
+  onOpenStatistics,
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -88,7 +90,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const { addSubscriptionAndReturn } = useSubscriptionStore();
 
   const [lastDeleted, setLastDeleted] = useState<Subscription | null>(null);
-  const [lastDeletedIndex, setLastDeletedIndex] = useState<number>(-1); // <-- Храним индекс
+  const [lastDeletedIndex, setLastDeletedIndex] = useState<number>(-1);
   const [showUndo, setShowUndo] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -100,10 +102,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const handleDelete = useCallback(
     (sub: Subscription) => {
-      // Находим индекс удаляемой подписки до её удаления
       const currentIndex = subscriptions.findIndex((s) => s.id === sub.id);
-
-      setLastDeletedIndex(currentIndex); // <-- Сохраняем индекс
+      setLastDeletedIndex(currentIndex);
       setLastDeleted(sub);
       removeSubscription(sub.id);
       setShowUndo(true);
@@ -113,18 +113,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         setShowUndo(false);
       }, UNDO_TIMEOUT_MS);
     },
-    [removeSubscription, subscriptions], // <-- Добавили subscriptions в зависимости
+    [removeSubscription, subscriptions],
   );
 
   const handleUndo = useCallback(() => {
     if (!lastDeleted) return;
-
-    // Восстанавливаем по сохраненному индексу
     addSubscriptionAndReturn(lastDeleted, lastDeletedIndex);
-
     setShowUndo(false);
     if (timerRef.current) clearTimeout(timerRef.current);
-  }, [lastDeleted, lastDeletedIndex, addSubscriptionAndReturn]); // <-- Добавили lastDeletedIndex
+  }, [lastDeleted, lastDeletedIndex, addSubscriptionAndReturn]);
 
   const renderItem = useCallback(
     ({ item }: { item: Subscription }) => (
@@ -151,10 +148,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     [onOpenDetails, handleDelete, colors],
   );
 
-  // ... JSX остается полностью без изменений ...
   return (
     <View style={styles.container}>
-      {/* ... header, totalCard, FlatList ... */}
+      {/* Шапка стала чище: только настройки слева и плюс справа */}
       <View style={styles.header}>
         <View style={styles.headerSide}>
           <TouchableOpacity
@@ -176,8 +172,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         </View>
       </View>
 
-      <View style={styles.totalCard}>
-        <Text style={styles.totalLabel}>Расходы в месяц</Text>
+      {/* 🚀 СИНЯЯ КАРТОЧКА ТЕПЕРЬ КЛИКАБЕЛЬНАЯ */}
+      <TouchableOpacity
+        style={styles.totalCard}
+        activeOpacity={0.85}
+        onPress={onOpenStatistics}
+      >
+        <View style={styles.cardHeader}>
+          <Text style={styles.totalLabel}>Расходы в месяц</Text>
+          <View style={styles.chartIconBg}>
+            <Ionicons
+              name="pie-chart"
+              size={20}
+              color="rgba(255,255,255,0.8)"
+            />
+          </View>
+        </View>
+
         <Text style={styles.totalAmount}>{totalMonthly} ₽</Text>
         <Text style={styles.totalYearly}>Это {totalYearly} ₽ в год</Text>
 
@@ -189,7 +200,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             </Text>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
 
       {subscriptions.length === 0 ? (
         <View style={styles.emptyState}>
@@ -219,7 +230,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   );
 };
 
-// ... createStyles остается без изменений ...
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
@@ -267,10 +277,23 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.lg,
       ...SHADOWS.medium,
     },
+    cardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: SPACING.xs,
+    },
+    chartIconBg: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
     totalLabel: {
       ...TYPOGRAPHY.caption,
       color: "rgba(255,255,255,0.8)",
-      marginBottom: SPACING.xs,
     },
     totalAmount: {
       fontSize: 36,

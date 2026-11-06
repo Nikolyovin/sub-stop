@@ -3,6 +3,10 @@ export type Category =
   | "music"
   | "software"
   | "sport"
+  | "education"
+  | "health"
+  | "food"
+  | "games"
   | "other";
 
 export type SubscriptionStatus = "active" | "trial";
@@ -20,25 +24,39 @@ export interface Subscription {
 }
 
 // Справочник категорий для UI
-export const CATEGORIES: {
-  id: Category;
-  label: string;
-  icon: string;
-  color: string;
-}[] = [
+export const CATEGORIES = [
   {
     id: "entertainment",
     label: "Кино",
     icon: "film-outline",
     color: "#EF4444",
-  }, // Красный
+  },
   {
     id: "music",
     label: "Музыка",
     icon: "musical-notes-outline",
     color: "#8B5CF6",
-  }, // Фиолетовый
-  { id: "software", label: "Софт", icon: "laptop-outline", color: "#3B82F6" }, // Синий
-  { id: "sport", label: "Спорт", icon: "fitness-outline", color: "#10B981" }, // Зеленый
-  { id: "other", label: "Другое", icon: "apps-outline", color: "#64748B" }, // Серый
-];
+  },
+  { id: "software", label: "Софт", icon: "laptop-outline", color: "#3B82F6" },
+  { id: "sport", label: "Спорт", icon: "fitness-outline", color: "#10B981" },
+  {
+    id: "education",
+    label: "Обучение",
+    icon: "school-outline",
+    color: "#F59E0B",
+  }, // <-- Новое
+  { id: "health", label: "Здоровье", icon: "heart-outline", color: "#EC4899" }, // <-- Новое
+  {
+    id: "food",
+    label: "Доставка",
+    icon: "fast-food-outline",
+    color: "#F97316",
+  }, // <-- Новое
+  {
+    id: "games",
+    label: "Игры",
+    icon: "game-controller-outline",
+    color: "#6366F1",
+  }, // <-- Новое
+  { id: "other", label: "Другое", icon: "apps-outline", color: "#64748B" },
+] as const;

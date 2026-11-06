@@ -3,26 +3,81 @@ import { ActivityIndicator, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet"; // <-- ВАЖНО
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { MainScreen } from "./src/screens/MainScreen";
 import { SubscriptionDetailsScreen } from "./src/screens/SubscriptionDetailsScreen";
 import { SubscriptionFormScreen } from "./src/screens/SubscriptionFormScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { StatisticsScreen } from "./src/screens/StatisticsScreen"; // <-- Новый экран
+
 import { ThemeProvider } from "./src/theme/ThemeContext";
 import { useSubscriptionStore } from "./src/store/useSubscriptionStore";
+import { useSubscriptionSync } from "./src/hooks/useSubscriptionSync"; // <-- Автопродление
 
-type ScreenState = "main" | "form" | "details" | "settings";
+type ScreenState = "main" | "form" | "details" | "settings" | "statistics";
 
-export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+// Выносим логику в отдельный компонент, чтобы хуки работали после онбординга
+const AppContent = () => {
   const [screen, setScreen] = useState<ScreenState>("main");
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
 
   const subscriptions = useSubscriptionStore((state) => state.subscriptions);
   const subToEdit = subscriptions.find((s) => s.id === selectedSubId);
+
+  // 🚀 Включаем автопродление подписок при старте
+  useSubscriptionSync();
+
+  return (
+    <>
+      {screen === "main" && (
+        <MainScreen
+          onAddPress={() => {
+            setSelectedSubId(null);
+            setScreen("form");
+          }}
+          onOpenDetails={(id) => {
+            setSelectedSubId(id);
+            setScreen("details");
+          }}
+          onOpenSettings={() => setScreen("settings")}
+          onOpenStatistics={() => setScreen("statistics")} // <-- Переход в статистику
+        />
+      )}
+
+      {screen === "details" && selectedSubId && (
+        <SubscriptionDetailsScreen
+          subscriptionId={selectedSubId}
+          onBack={() => setScreen("main")}
+          onEdit={(sub) => {
+            setSelectedSubId(sub.id);
+            setScreen("form");
+          }}
+        />
+      )}
+
+      {screen === "form" && (
+        <SubscriptionFormScreen
+          initialData={subToEdit}
+          onBack={() => setScreen(selectedSubId ? "details" : "main")}
+        />
+      )}
+
+      {screen === "settings" && (
+        <SettingsScreen onBack={() => setScreen("main")} />
+      )}
+
+      {screen === "statistics" && (
+        <StatisticsScreen onBack={() => setScreen("main")} />
+      )}
+    </>
+  );
+};
+
+export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -58,47 +113,10 @@ export default function App() {
       <BottomSheetModalProvider>
         <ThemeProvider>
           <StatusBar style="auto" />
-
           {showOnboarding ? (
             <OnboardingScreen onFinish={() => setShowOnboarding(false)} />
           ) : (
-            <>
-              {screen === "main" && (
-                <MainScreen
-                  onAddPress={() => {
-                    setSelectedSubId(null);
-                    setScreen("form");
-                  }}
-                  onOpenDetails={(id) => {
-                    setSelectedSubId(id);
-                    setScreen("details");
-                  }}
-                  onOpenSettings={() => setScreen("settings")}
-                />
-              )}
-
-              {screen === "details" && selectedSubId && (
-                <SubscriptionDetailsScreen
-                  subscriptionId={selectedSubId}
-                  onBack={() => setScreen("main")}
-                  onEdit={(sub) => {
-                    setSelectedSubId(sub.id);
-                    setScreen("form");
-                  }}
-                />
-              )}
-
-              {screen === "form" && (
-                <SubscriptionFormScreen
-                  initialData={subToEdit}
-                  onBack={() => setScreen(selectedSubId ? "details" : "main")}
-                />
-              )}
-
-              {screen === "settings" && (
-                <SettingsScreen onBack={() => setScreen("main")} />
-              )}
-            </>
+            <AppContent />
           )}
         </ThemeProvider>
       </BottomSheetModalProvider>
