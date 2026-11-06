@@ -60,11 +60,16 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
 
       <View style={styles.rightSide}>
         <Text style={styles.price}>
-          {subscription.price} ₽
+          {subscription.price === 0 ? "Бесплатно" : `${subscription.price} ₽`}
           {subscription.billingCycle === "yearly" && (
             <Text style={styles.cycleText}>/год</Text>
           )}
         </Text>
+        {subscription.regularPrice && (
+          <Text style={styles.regularPriceText}>
+            Далее: {subscription.regularPrice} ₽
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -114,6 +119,11 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "flex-end",
       justifyContent: "center",
       marginLeft: SPACING.sm,
+    },
+    regularPriceText: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: 2,
     },
     price: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
     cycleText: { fontSize: 12, color: colors.textSecondary, fontWeight: "400" },

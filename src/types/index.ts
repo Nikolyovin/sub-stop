@@ -1,43 +1,44 @@
 export type Category =
-  | 'entertainment'
-  | 'music'
-  | 'software'
-  | 'sport'
-  | 'other'
+  | "entertainment"
+  | "music"
+  | "software"
+  | "sport"
+  | "other";
 
-export type SubscriptionStatus = 'active' | 'trial'
+export type SubscriptionStatus = "active" | "trial";
 
 export interface Subscription {
-  id: string
-  name: string
-  price: number
-  currency: string
-  billingCycle: 'monthly' | 'yearly'
-  nextPaymentDate: string // Для триала это дата ПЕРВОГО списания
-  category: Category
-  status: SubscriptionStatus
+  id: string;
+  name: string;
+  price: number; // Текущая цена (например, 299 или 0)
+  regularPrice?: number; // Цена после окончания промо (например, 499)
+  currency: string;
+  billingCycle: "monthly" | "yearly";
+  nextPaymentDate: string;
+  category: Category;
+  status: SubscriptionStatus;
 }
 
 // Справочник категорий для UI
 export const CATEGORIES: {
-  id: Category
-  label: string
-  icon: string
-  color: string
+  id: Category;
+  label: string;
+  icon: string;
+  color: string;
 }[] = [
   {
-    id: 'entertainment',
-    label: 'Кино',
-    icon: 'film-outline',
-    color: '#EF4444',
+    id: "entertainment",
+    label: "Кино",
+    icon: "film-outline",
+    color: "#EF4444",
   }, // Красный
   {
-    id: 'music',
-    label: 'Музыка',
-    icon: 'musical-notes-outline',
-    color: '#8B5CF6',
+    id: "music",
+    label: "Музыка",
+    icon: "musical-notes-outline",
+    color: "#8B5CF6",
   }, // Фиолетовый
-  { id: 'software', label: 'Софт', icon: 'laptop-outline', color: '#3B82F6' }, // Синий
-  { id: 'sport', label: 'Спорт', icon: 'fitness-outline', color: '#10B981' }, // Зеленый
-  { id: 'other', label: 'Другое', icon: 'apps-outline', color: '#64748B' }, // Серый
-]
+  { id: "software", label: "Софт", icon: "laptop-outline", color: "#3B82F6" }, // Синий
+  { id: "sport", label: "Спорт", icon: "fitness-outline", color: "#10B981" }, // Зеленый
+  { id: "other", label: "Другое", icon: "apps-outline", color: "#64748B" }, // Серый
+];

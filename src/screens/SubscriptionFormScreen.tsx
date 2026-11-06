@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useState, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -6,50 +6,50 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
-} from 'react-native'
-import DateTimePicker from '@react-native-community/datetimepicker'
-import { Ionicons } from '@expo/vector-icons'
-import { format } from 'date-fns'
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import { format } from "date-fns";
 
-import { useSubscriptionForm } from '../hooks/useSubscriptionForm'
-import { InputField } from '../components/ui/InputField'
-import { CycleSelector } from '../components/ui/CycleSelector'
-import { CategorySelector } from '../components/ui/CategorySelector'
-import { HeaderBackButton } from '../components/ui/HeaderBackButton'
-import { BrandPickerSheet } from '../components/BrandPickerSheet'
+import { useSubscriptionForm } from "../hooks/useSubscriptionForm";
+import { InputField } from "../components/ui/InputField";
+import { CycleSelector } from "../components/ui/CycleSelector";
+import { CategorySelector } from "../components/ui/CategorySelector";
+import { HeaderBackButton } from "../components/ui/HeaderBackButton";
+import { BrandPickerSheet } from "../components/BrandPickerSheet";
 
-import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../theme'
-import { useTheme } from '../theme/ThemeContext'
-import { Subscription } from '../types'
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
+import { useTheme } from "../theme/ThemeContext";
+import { Subscription } from "../types";
 
 interface SubscriptionFormScreenProps {
-  onBack: () => void
-  initialData?: Subscription
+  onBack: () => void;
+  initialData?: Subscription;
 }
 
 export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
   onBack,
   initialData,
 }) => {
-  const { colors } = useTheme()
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const bottomSheetRef = useRef<{ open: () => void }>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const bottomSheetRef = useRef<{ open: () => void }>(null);
 
-  const form = useSubscriptionForm(onBack, initialData)
+  const form = useSubscriptionForm(onBack, initialData);
 
   const onDateChange = (event: any, date?: Date) => {
-    if (Platform.OS === 'android') setShowDatePicker(false)
-    if (date) form.setDate(date)
-  }
+    if (Platform.OS === "android") setShowDatePicker(false);
+    if (date) form.setDate(date);
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <HeaderBackButton onPress={onBack} />
         <Text style={styles.headerTitle}>
-          {form.isEditing ? 'Редактирование' : 'Новая подписка'}
+          {form.isEditing ? "Редактирование" : "Новая подписка"}
         </Text>
         <View style={styles.placeholder} />
       </View>
@@ -57,7 +57,9 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
       <ScrollView
         contentContainerStyle={styles.form}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
+        {/* 1. Название */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Название</Text>
           <TouchableOpacity
@@ -72,45 +74,29 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
                   : styles.selectorTextPlaceholder
               }
             >
-              {form.name || 'Выберите или введите название'}
+              {form.name || "Выберите или введите название"}
             </Text>
             <Ionicons
-              name='chevron-down'
+              name="chevron-down"
               size={20}
               color={colors.textSecondary}
             />
           </TouchableOpacity>
         </View>
 
-        <InputField
-          label='Стоимость (₽)'
-          value={form.price}
-          onChangeText={form.setPrice}
-          placeholder='0'
-          keyboardType='numeric'
-        />
-
-        <Text style={styles.label}>Периодичность</Text>
-        <CycleSelector value={form.cycle} onChange={form.setCycle} />
-
-        <CategorySelector
-          selected={form.category}
-          onSelect={form.setCategory}
-        />
-
-        {/* Переключатель статуса */}
+        {/* 2. Статус (перенесли наверх) */}
         <Text style={styles.label}>Статус подписки</Text>
         <View style={styles.statusRow}>
           <TouchableOpacity
             style={[
               styles.statusBtn,
-              form.status === 'active' && styles.statusBtnActive,
+              form.status === "active" && styles.statusBtnActive,
             ]}
-            onPress={() => form.setStatus('active')}
+            onPress={() => form.setStatus("active")}
           >
             <Text
               style={
-                form.status === 'active'
+                form.status === "active"
                   ? styles.statusTextActive
                   : styles.statusText
               }
@@ -121,13 +107,13 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
           <TouchableOpacity
             style={[
               styles.statusBtn,
-              form.status === 'trial' && styles.statusBtnActive,
+              form.status === "trial" && styles.statusBtnActive,
             ]}
-            onPress={() => form.setStatus('trial')}
+            onPress={() => form.setStatus("trial")}
           >
             <Text
               style={
-                form.status === 'trial'
+                form.status === "trial"
                   ? styles.statusTextActive
                   : styles.statusText
               }
@@ -137,23 +123,58 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
           </TouchableOpacity>
         </View>
 
+        {/* 3. Стоимость (зависит от статуса) */}
+        <InputField
+          label={
+            form.status === "trial"
+              ? "Стоимость во время промо (₽)"
+              : "Стоимость (₽)"
+          }
+          value={form.price}
+          onChangeText={form.setPrice}
+          placeholder="0"
+          keyboardType="numeric"
+        />
+
+        {/* 4. Регулярная стоимость (только для триала) */}
+        {form.status === "trial" && (
+          <InputField
+            label="Стоимость после окончания (₽)"
+            value={form.regularPrice}
+            onChangeText={form.setRegularPrice}
+            placeholder="Например, 499"
+            keyboardType="numeric"
+          />
+        )}
+
+        {/* 5. Периодичность */}
+        <Text style={styles.label}>Периодичность</Text>
+        <CycleSelector value={form.cycle} onChange={form.setCycle} />
+
+        {/* 6. Категория */}
+        <CategorySelector
+          selected={form.category}
+          onSelect={form.setCategory}
+        />
+
+        {/* 7. Дата */}
         <Text style={styles.label}>
-          {form.status === 'trial'
-            ? 'Дата окончания триала (первое списание)'
-            : 'Дата следующего списания'}
+          {form.status === "trial"
+            ? "Дата окончания триала (первое списание)"
+            : "Дата следующего списания"}
         </Text>
         <TouchableOpacity
           style={styles.dateInput}
           onPress={() => setShowDatePicker(true)}
         >
-          <Text style={styles.dateText}>{format(form.date, 'dd.MM.yyyy')}</Text>
+          <Text style={styles.dateText}>{format(form.date, "dd.MM.yyyy")}</Text>
         </TouchableOpacity>
 
         {showDatePicker && (
           <DateTimePicker
             value={form.date}
-            mode='date'
-            display='default'
+            mode="date"
+            display="default"
             onValueChange={onDateChange}
             onDismiss={() => setShowDatePicker(false)}
             minimumDate={new Date()}
@@ -166,7 +187,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
           disabled={!form.isValid}
         >
           <Text style={styles.saveBtnText}>
-            {form.isEditing ? 'Сохранить изменения' : 'Добавить'}
+            {form.isEditing ? "Сохранить изменения" : "Добавить"}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -177,16 +198,16 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
         onClose={() => {}}
       />
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
       marginBottom: SPACING.xl,
     },
@@ -200,23 +221,24 @@ const createStyles = (colors: ThemeColors) =>
     },
     inputGroup: { marginBottom: SPACING.md },
     selectorInput: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
       padding: SPACING.md,
       borderWidth: 1,
       borderColor: colors.border,
+      marginBottom: SPACING.md, // Добавили отступ снизу
     },
     selectorTextPlaceholder: { fontSize: 16, color: colors.textSecondary },
     selectorTextActive: {
       fontSize: 16,
       color: colors.textMain,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     statusRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: SPACING.md,
       marginBottom: SPACING.md,
     },
@@ -227,7 +249,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      alignItems: 'center',
+      alignItems: "center",
     },
     statusBtnActive: {
       backgroundColor: colors.primary,
@@ -236,12 +258,12 @@ const createStyles = (colors: ThemeColors) =>
     statusText: {
       ...TYPOGRAPHY.body,
       color: colors.textMain,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     statusTextActive: {
       ...TYPOGRAPHY.body,
       color: colors.white,
-      fontWeight: 'bold',
+      fontWeight: "bold",
     },
     dateInput: {
       backgroundColor: colors.card,
@@ -256,9 +278,9 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.primary,
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.round,
-      alignItems: 'center',
+      alignItems: "center",
       marginTop: SPACING.xl,
     },
     saveBtnDisabled: { opacity: 0.5 },
     saveBtnText: { ...TYPOGRAPHY.button, color: colors.white, fontSize: 18 },
-  })
+  });

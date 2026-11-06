@@ -36,7 +36,7 @@ export const BrandPickerSheet = React.forwardRef<
   const [search, setSearch] = useState("");
 
   const sheetRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["50%", "85%"], []);
+  const snapPoints = useMemo(() => ["60%", "90%"], []); // Чуть увеличили, чтобы было удобнее
 
   useImperativeHandle(ref, () => ({
     open: () => sheetRef.current?.present(),
@@ -67,7 +67,6 @@ export const BrandPickerSheet = React.forwardRef<
     sheetRef.current?.dismiss();
   };
 
-  // Умный рендер иконок (чтобы VK и Telegram точно отображались)
   const renderIcon = (brand: any, size: number) => {
     if (brand.id === "telegram") {
       return <Ionicons name="paper-plane" size={size} color={brand.color} />;
@@ -93,11 +92,13 @@ export const BrandPickerSheet = React.forwardRef<
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: colors.background }}
       handleIndicatorStyle={{ backgroundColor: colors.border, width: 40 }}
-      // Эти два пропса решают проблему с клавиатурой
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
+      // 🚀 РЕШЕНИЕ ПРОБЛЕМЫ:
+      enableDynamicSizing={false} // <-- Запрещает шторке сжиматься, когда список короткий
+      keyboardBehavior="interactive" // <-- Плавно поднимает шторку над клавиатурой
+      keyboardBlurBehavior="restore" // <-- Возвращает на исходную высоту
     >
-      <View style={styles.content}>
+      {/* flex: 1 заставляет контент занять всю высоту шторки */}
+      <View style={[styles.content, { flex: 1 }]}>
         <Text style={styles.title}>Выберите сервис</Text>
 
         <View style={styles.searchContainer}>
@@ -113,8 +114,8 @@ export const BrandPickerSheet = React.forwardRef<
 
         <BottomSheetScrollView
           showsVerticalScrollIndicator={false}
-          // Этот пропс решает проблему с двойным нажатием
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="handled" // <-- Выбор бренда с первого тапа
+          contentContainerStyle={{ flexGrow: 1 }} // <-- Важно, чтобы пустое место было
         >
           <View style={styles.grid}>
             {filteredBrands.map((brand) => (
@@ -157,7 +158,7 @@ export const BrandPickerSheet = React.forwardRef<
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    content: { flex: 1, paddingHorizontal: SPACING.lg },
+    content: { paddingHorizontal: SPACING.lg },
     title: {
       ...TYPOGRAPHY.title,
       color: colors.textMain,
