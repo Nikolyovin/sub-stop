@@ -1,6 +1,14 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useMemo, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
+import { differenceInCalendarDays } from "date-fns"; // 🚀 Изменили на CalendarDays
 import { Subscription } from "../types";
 import { getBrandData } from "../utils/brandUtils";
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
@@ -16,6 +24,60 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const brand = getBrandData(subscription.name);
+
+  // 🚀 Считаем, сколько дней осталось до конца триала
+  const daysLeft = useMemo(() => {
+    if (subscription.status !== "trial") return null;
+    const diff = differenceInCalendarDays(
+      // 🚀 Используем CalendarDays
+      new Date(subscription.nextPaymentDate),
+      new Date(),
+    );
+    return diff;
+  }, [subscription]);
+
+  const isEndingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
+
+  // 🚀 Анимация пульсации
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    if (isEndingSoon) {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(1.3, { duration: 800 }),
+          withTiming(1, { duration: 800 }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      pulse.value = 1;
+    }
+  }, [isEndingSoon, pulse]);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
+
+  const handleBadgePress = () => {
+    if (isEndingSoon && daysLeft !== null) {
+      const dayText =
+        daysLeft === 0
+          ? "сегодня"
+          : daysLeft === 1
+            ? "завтра"
+            : `через ${daysLeft} дн.`;
+      const priceText = subscription.regularPrice
+        ? ` Далее спишут ${subscription.regularPrice} ₽.`
+        : "";
+
+      Alert.alert(
+        "Триал скоро закончится ⏳",
+        `Пробный период на «${subscription.name}» закончится ${dayText}.${priceText}`,
+        [{ text: "Понятно", style: "default" }],
+      );
+    }
+  };
 
   const renderIcon = (size: number) => {
     if (brand.id === "telegram") {
@@ -46,10 +108,36 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           <Text style={styles.name} numberOfLines={1}>
             {subscription.name}
           </Text>
+
+          {/* 🚀 Бейдж становится кликабельным */}
           {subscription.status === "trial" && (
-            <View style={styles.trialBadge}>
-              <Text style={styles.trialBadgeText}>TRIAL</Text>
-            </View>
+            <TouchableOpacity
+              onPress={handleBadgePress}
+              activeOpacity={isEndingSoon ? 0.6 : 1}
+              disabled={!isEndingSoon}
+            >
+              <View
+                style={[
+                  styles.trialBadge,
+                  isEndingSoon && styles.trialBadgeWarning,
+                ]}
+              >
+                {isEndingSoon && (
+                  <Animated.View style={pulseStyle}>
+                    <Ionicons name="alert-circle" size={12} color="#fff" />
+                  </Animated.View>
+                )}
+                <Text style={styles.trialBadgeText}>
+                  {isEndingSoon
+                    ? daysLeft === 0
+                      ? "Сегодня"
+                      : daysLeft === 1
+                        ? "Завтра" // 🚀 Добавили "Завтра"
+                        : `${daysLeft} дн.`
+                    : "TRIAL"}
+                </Text>
+              </View>
+            </TouchableOpacity>
           )}
         </View>
         <Text style={styles.date}>
@@ -84,7 +172,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.lg,
       borderWidth: 1,
-      borderColor: colors.border, // <-- Тонкая аккуратная рамка вместо тени
+      borderColor: colors.border,
     },
     iconContainer: {
       width: 48,
@@ -108,23 +196,33 @@ const createStyles = (colors: ThemeColors) =>
       flexShrink: 1,
     },
     trialBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
       backgroundColor: "#F59E0B",
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
     },
-    trialBadgeText: { fontSize: 10, color: "#fff", fontWeight: "bold" },
+    trialBadgeWarning: {
+      backgroundColor: colors.danger,
+    },
+    trialBadgeText: {
+      fontSize: 10,
+      color: "#fff",
+      fontWeight: "bold",
+    },
     date: { ...TYPOGRAPHY.caption, color: colors.textSecondary },
     rightSide: {
       alignItems: "flex-end",
       justifyContent: "center",
       marginLeft: SPACING.sm,
     },
+    price: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
+    cycleText: { fontSize: 12, color: colors.textSecondary, fontWeight: "400" },
     regularPriceText: {
       fontSize: 11,
       color: colors.textSecondary,
       marginTop: 2,
     },
-    price: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
-    cycleText: { fontSize: 12, color: colors.textSecondary, fontWeight: "400" },
   });

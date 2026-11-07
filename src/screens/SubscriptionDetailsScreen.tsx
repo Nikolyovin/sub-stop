@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,15 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns"; // 🚀 Изменили импорт
 import { ru } from "date-fns/locale";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useSubscriptionDetails } from "../hooks/useSubscriptionDetails";
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
@@ -20,7 +27,6 @@ import { getBrandData } from "../utils/brandUtils";
 interface SubscriptionDetailsScreenProps {
   subscriptionId: string;
   onBack: () => void;
-  // 🚀 Обновили тип: теперь можно передавать 'note' вторым аргументом
   onEdit: (sub: Subscription, focus?: "note") => void;
 }
 
@@ -32,6 +38,39 @@ export const SubscriptionDetailsScreen: React.FC<
 
   const { subscription, categoryData, costs, cycleInfo, removeSubscription } =
     useSubscriptionDetails(subscriptionId);
+
+  // 🚀 Считаем дни до конца триала
+  const daysLeft = useMemo(() => {
+    if (!subscription || subscription.status !== "trial") return null;
+    return differenceInCalendarDays(
+      // 🚀 Используем CalendarDays
+      new Date(subscription.nextPaymentDate),
+      new Date(),
+    );
+  }, [subscription]);
+
+  const isTrialEndingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
+
+  // 🚀 Анимация пульсации
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    if (isTrialEndingSoon) {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(1.3, { duration: 800 }),
+          withTiming(1, { duration: 800 }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      pulse.value = 1;
+    }
+  }, [isTrialEndingSoon, pulse]);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
 
   if (!subscription || !categoryData) {
     return (
@@ -66,6 +105,26 @@ export const SubscriptionDetailsScreen: React.FC<
         color={brand.color}
       />
     );
+  };
+
+  const handleBadgePress = () => {
+    if (isTrialEndingSoon && daysLeft !== null) {
+      const dayText =
+        daysLeft === 0
+          ? "сегодня"
+          : daysLeft === 1
+            ? "завтра"
+            : `через ${daysLeft} дн.`;
+      const priceText = subscription.regularPrice
+        ? ` Далее спишут ${subscription.regularPrice} ₽.`
+        : "";
+
+      Alert.alert(
+        "Триал скоро закончится ⏳",
+        `Пробный период на «${subscription.name}» закончится ${dayText}.${priceText}`,
+        [{ text: "Понятно", style: "default" }],
+      );
+    }
   };
 
   const handleDelete = () => {
@@ -116,10 +175,41 @@ export const SubscriptionDetailsScreen: React.FC<
             }}
           >
             <Text style={styles.subName}>{subscription.name}</Text>
+
+            {/* 🚀 Обновленный бейдж с анимацией и обработчиком нажатия */}
             {subscription.status === "trial" && (
-              <View style={styles.trialBadge}>
-                <Text style={styles.trialBadgeText}>TRIAL</Text>
-              </View>
+              <TouchableOpacity
+                onPress={handleBadgePress}
+                activeOpacity={isTrialEndingSoon ? 0.6 : 1}
+                disabled={!isTrialEndingSoon}
+              >
+                <View
+                  style={[
+                    styles.trialBadge,
+                    isTrialEndingSoon && styles.trialBadgeWarning,
+                  ]}
+                >
+                  {isTrialEndingSoon && (
+                    <Animated.View style={pulseStyle}>
+                      <Ionicons
+                        name="alert-circle"
+                        size={12}
+                        color="#fff"
+                        style={{ marginRight: 3 }}
+                      />
+                    </Animated.View>
+                  )}
+                  <Text style={styles.trialBadgeText}>
+                    {isTrialEndingSoon
+                      ? daysLeft === 0
+                        ? "Сегодня"
+                        : daysLeft === 1
+                          ? "Завтра" // 🚀 Добавили "Завтра"
+                          : `${daysLeft} дн.`
+                      : "TRIAL"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             )}
           </View>
           <Text style={styles.subCategory}>{categoryData.label}</Text>
@@ -213,7 +303,6 @@ export const SubscriptionDetailsScreen: React.FC<
           </View>
         </View>
 
-        {/* 🚀 При клике на заметку передаем флаг 'note' */}
         {subscription.note ? (
           <TouchableOpacity
             style={styles.noteCard}
@@ -270,7 +359,6 @@ const createStyles = (colors: ThemeColors) =>
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
     errorText: { ...TYPOGRAPHY.body, textAlign: "center", marginTop: 50 },
 
-    // 🚀 Выровняли все отступы
     heroCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.xl,
@@ -290,11 +378,17 @@ const createStyles = (colors: ThemeColors) =>
     },
     subName: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 22 },
     subCategory: { ...TYPOGRAPHY.caption, color: colors.textSecondary },
+
     trialBadge: {
+      flexDirection: "row",
+      alignItems: "center",
       backgroundColor: "#F59E0B",
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
+    },
+    trialBadgeWarning: {
+      backgroundColor: colors.danger,
     },
     trialBadgeText: { fontSize: 10, color: "#fff", fontWeight: "bold" },
 
@@ -393,7 +487,6 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: 2,
     },
 
-    // 🚀 noteCard теперь имеет те же отступы, что и infoRow (marginBottom: SPACING.sm)
     noteCard: {
       flexDirection: "row",
       backgroundColor: colors.card,
