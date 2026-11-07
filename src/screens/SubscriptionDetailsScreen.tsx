@@ -20,7 +20,8 @@ import { getBrandData } from "../utils/brandUtils";
 interface SubscriptionDetailsScreenProps {
   subscriptionId: string;
   onBack: () => void;
-  onEdit: (sub: Subscription) => void;
+  // 🚀 Обновили тип: теперь можно передавать 'note' вторым аргументом
+  onEdit: (sub: Subscription, focus?: "note") => void;
 }
 
 export const SubscriptionDetailsScreen: React.FC<
@@ -44,14 +45,11 @@ export const SubscriptionDetailsScreen: React.FC<
   }
 
   const brand = getBrandData(subscription.name);
-
-  // Возвращаем полный формат даты с годом
   const formattedDate = format(
     new Date(subscription.nextPaymentDate),
     "d MMMM yyyy",
     { locale: ru },
   );
-
   const isTrialExpired =
     subscription.status === "trial" &&
     new Date(subscription.nextPaymentDate) < new Date();
@@ -152,7 +150,6 @@ export const SubscriptionDetailsScreen: React.FC<
             </Text>
             <Text style={styles.statValue}>{costs.monthly} ₽</Text>
           </View>
-
           {subscription.status === "trial" &&
           costs.futureMonthly > costs.monthly ? (
             <View style={styles.statBox}>
@@ -184,7 +181,6 @@ export const SubscriptionDetailsScreen: React.FC<
           </View>
         </View>
 
-        {/* 🚀 РАЗДЕЛЬНЫЕ СТРОКИ (как было) */}
         <View style={styles.infoRow}>
           <Ionicons
             name="calendar-outline"
@@ -217,11 +213,12 @@ export const SubscriptionDetailsScreen: React.FC<
           </View>
         </View>
 
+        {/* 🚀 При клике на заметку передаем флаг 'note' */}
         {subscription.note ? (
           <TouchableOpacity
             style={styles.noteCard}
             activeOpacity={0.7}
-            onPress={() => onEdit(subscription)}
+            onPress={() => onEdit(subscription, "note")}
           >
             <Ionicons
               name="document-text-outline"
@@ -260,7 +257,6 @@ export const SubscriptionDetailsScreen: React.FC<
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    // Стили остаются прежними
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
       flexDirection: "row",
@@ -273,6 +269,8 @@ const createStyles = (colors: ThemeColors) =>
     placeholder: { width: 44 },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
     errorText: { ...TYPOGRAPHY.body, textAlign: "center", marginTop: 50 },
+
+    // 🚀 Выровняли все отступы
     heroCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.xl,
@@ -299,6 +297,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 4,
     },
     trialBadgeText: { fontSize: 10, color: "#fff", fontWeight: "bold" },
+
     banner: {
       flexDirection: "row",
       alignItems: "center",
@@ -318,6 +317,7 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.white,
       fontSize: 14,
     },
+
     statsGrid: {
       flexDirection: "row",
       gap: SPACING.md,
@@ -337,11 +337,12 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.xs,
     },
     statValue: { fontSize: 20, fontWeight: "bold", color: colors.primary },
+
     progressCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.lg,
       padding: SPACING.md,
-      marginBottom: SPACING.sm,
+      marginBottom: SPACING.md,
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -372,6 +373,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.primary,
       borderRadius: 4,
     },
+
     infoRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -390,13 +392,14 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 16,
       marginTop: 2,
     },
+
+    // 🚀 noteCard теперь имеет те же отступы, что и infoRow (marginBottom: SPACING.sm)
     noteCard: {
       flexDirection: "row",
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.lg,
       padding: SPACING.md,
-      marginTop: SPACING.sm,
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm,
       borderWidth: 1,
       borderColor: colors.border,
       gap: SPACING.sm,
@@ -413,6 +416,7 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
       fontStyle: "italic",
     },
+
     actionBtn: {
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.round,

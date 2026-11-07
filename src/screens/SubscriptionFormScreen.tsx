@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   TextInput,
   KeyboardAvoidingView,
+  Keyboard, // 🚀 Добавили Keyboard для скрытия
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,11 +28,13 @@ import { Subscription } from "../types";
 interface SubscriptionFormScreenProps {
   onBack: () => void;
   initialData?: Subscription;
+  focusField?: "note";
 }
 
 export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
   onBack,
   initialData,
+  focusField,
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -39,7 +42,18 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const bottomSheetRef = useRef<{ open: () => void }>(null);
 
+  const noteInputRef = useRef<any>(null);
+
   const form = useSubscriptionForm(onBack, initialData);
+
+  useEffect(() => {
+    if (focusField === "note") {
+      const timer = setTimeout(() => {
+        noteInputRef.current?.focus();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [focusField]);
 
   const onDateChange = (event: any, date?: Date) => {
     if (Platform.OS === "android") setShowDatePicker(false);
@@ -48,7 +62,6 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Компактная шапка */}
       <View style={styles.header}>
         <HeaderBackButton onPress={onBack} />
         <Text style={styles.headerTitle}>
@@ -59,14 +72,16 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        // 🚀 Настройки для правильной работы на Android и iOS
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <ScrollView
           contentContainerStyle={styles.form}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          // 🚀 "never" закрывает клавиатуру при тапе по любому другому элементу, не нажимая его
+          keyboardShouldPersistTaps="never"
+          // 🚀 Закрывает клавиатуру при скролле
+          keyboardDismissMode="on-drag"
         >
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Название</Text>
@@ -187,16 +202,19 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
           <Text style={styles.label}>Заметка (необязательно)</Text>
           <TextInput
+            ref={noteInputRef}
             style={[styles.dateInput, styles.noteInput]}
             placeholder="Например, аккаунт или когда отменить"
             placeholderTextColor={colors.textSecondary}
             value={form.note}
             onChangeText={form.setNote}
-            multiline
             maxLength={100}
+            // 🚀 Убрали multiline, чтобы Enter закрывал клавиатуру, а не переносил строку
+            returnKeyType="done"
+            // 🚀 Принудительно закрываем клавиатуру при нажатии Enter
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
 
-          {/* Кнопка теперь всегда доступна, так как внизу есть запас места */}
           <TouchableOpacity
             style={[styles.saveBtn, !form.isValid && styles.saveBtnDisabled]}
             onPress={form.save}
@@ -220,17 +238,16 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 }, // 🚀 Уменьшили отступ сверху
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: SPACING.lg,
-      marginBottom: SPACING.md, // 🚀 Уменьшили отступ снизу
+      marginBottom: SPACING.md,
     },
     headerTitle: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
     placeholder: { width: 44 },
-    // 🚀 Добавили огромный paddingBottom, чтобы было куда скроллить над клавиатурой
     form: { paddingHorizontal: SPACING.lg, paddingBottom: 350 },
     label: {
       ...TYPOGRAPHY.caption,

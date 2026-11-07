@@ -71,7 +71,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
           <View style={styles.daysContainer}>
             <Text style={styles.daysLabel}>За сколько дней напоминать?</Text>
             <View style={styles.pillsContainer}>
-              {[1, 2, 3, 5, 7].map((days) => (
+              {[1, 2, 3].map((days) => (
                 <TouchableOpacity
                   key={days}
                   style={[

@@ -10,23 +10,23 @@ import { MainScreen } from "./src/screens/MainScreen";
 import { SubscriptionDetailsScreen } from "./src/screens/SubscriptionDetailsScreen";
 import { SubscriptionFormScreen } from "./src/screens/SubscriptionFormScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
-import { StatisticsScreen } from "./src/screens/StatisticsScreen"; // <-- Новый экран
+import { StatisticsScreen } from "./src/screens/StatisticsScreen";
 
 import { ThemeProvider } from "./src/theme/ThemeContext";
 import { useSubscriptionStore } from "./src/store/useSubscriptionStore";
-import { useSubscriptionSync } from "./src/hooks/useSubscriptionSync"; // <-- Автопродление
+import { useSubscriptionSync } from "./src/hooks/useSubscriptionSync";
 
 type ScreenState = "main" | "form" | "details" | "settings" | "statistics";
 
-// Выносим логику в отдельный компонент, чтобы хуки работали после онбординга
 const AppContent = () => {
   const [screen, setScreen] = useState<ScreenState>("main");
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
+  // 🚀 Храним, на каком поле сфокусироваться в форме
+  const [focusField, setFocusField] = useState<"note" | undefined>(undefined);
 
   const subscriptions = useSubscriptionStore((state) => state.subscriptions);
   const subToEdit = subscriptions.find((s) => s.id === selectedSubId);
 
-  // 🚀 Включаем автопродление подписок при старте
   useSubscriptionSync();
 
   return (
@@ -35,6 +35,7 @@ const AppContent = () => {
         <MainScreen
           onAddPress={() => {
             setSelectedSubId(null);
+            setFocusField(undefined); // Сбрасываем фокус
             setScreen("form");
           }}
           onOpenDetails={(id) => {
@@ -42,7 +43,7 @@ const AppContent = () => {
             setScreen("details");
           }}
           onOpenSettings={() => setScreen("settings")}
-          onOpenStatistics={() => setScreen("statistics")} // <-- Переход в статистику
+          onOpenStatistics={() => setScreen("statistics")}
         />
       )}
 
@@ -50,8 +51,9 @@ const AppContent = () => {
         <SubscriptionDetailsScreen
           subscriptionId={selectedSubId}
           onBack={() => setScreen("main")}
-          onEdit={(sub) => {
+          onEdit={(sub, focus) => {
             setSelectedSubId(sub.id);
+            setFocusField(focus); // 🚀 Передаем фокус в форму
             setScreen("form");
           }}
         />
@@ -61,6 +63,7 @@ const AppContent = () => {
         <SubscriptionFormScreen
           initialData={subToEdit}
           onBack={() => setScreen(selectedSubId ? "details" : "main")}
+          focusField={focusField} // 🚀 Передаем пропс
         />
       )}
 

@@ -13,14 +13,9 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import Animated, {
-  useAnimatedStyle,
-  SharedValue,
-} from "react-native-reanimated";
 import { useDashboard } from "../hooks/useDashboard";
-import { SubscriptionCard } from "../components/SubscriptionCard";
 import { UndoSnackbar } from "../components/ui/UndoSnackbar";
+import { SwipeableCard } from "../components/ui/SwipeableCard";
 import {
   SPACING,
   TYPOGRAPHY,
@@ -40,36 +35,6 @@ interface MainScreenProps {
 }
 
 const UNDO_TIMEOUT_MS = 5000;
-
-interface RightActionProps {
-  drag: SharedValue<number>;
-  item: Subscription;
-  onDelete: (item: Subscription) => void;
-  colors: ThemeColors;
-}
-
-const RightAction = ({ drag, item, onDelete, colors }: RightActionProps) => {
-  const styleAnimation = useAnimatedStyle(() => {
-    return { transform: [{ translateX: drag.value + 60 }] };
-  });
-
-  return (
-    <Animated.View
-      style={[
-        styleAnimation,
-        { width: 60, justifyContent: "center", alignItems: "center" },
-      ]}
-    >
-      <TouchableOpacity
-        onPress={() => onDelete(item)}
-        activeOpacity={0.7}
-        style={{ padding: SPACING.sm }}
-      >
-        <Ionicons name="trash-outline" size={28} color={colors.danger} />
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
 
 export const MainScreen: React.FC<MainScreenProps> = ({
   onAddPress,
@@ -94,6 +59,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [showUndo, setShowUndo] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -101,11 +68,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   }, []);
 
   const handleDelete = useCallback(
-    (sub: Subscription) => {
-      const currentIndex = subscriptions.findIndex((s) => s.id === sub.id);
+    (id: string) => {
+      const sub = subscriptions.find((s) => s.id === id);
+      if (!sub) return;
+
+      if (openCardId === id) setOpenCardId(null);
+
+      const currentIndex = subscriptions.findIndex((s) => s.id === id);
       setLastDeletedIndex(currentIndex);
       setLastDeleted(sub);
-      removeSubscription(sub.id);
+      removeSubscription(id);
       setShowUndo(true);
 
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -113,7 +85,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         setShowUndo(false);
       }, UNDO_TIMEOUT_MS);
     },
-    [removeSubscription, subscriptions],
+    [removeSubscription, subscriptions, openCardId],
   );
 
   const handleUndo = useCallback(() => {
@@ -125,32 +97,20 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const renderItem = useCallback(
     ({ item }: { item: Subscription }) => (
-      <View style={{ marginBottom: SPACING.sm }}>
-        <ReanimatedSwipeable
-          renderRightActions={(prog, drag) => (
-            <RightAction
-              drag={drag}
-              item={item}
-              onDelete={handleDelete}
-              colors={colors}
-            />
-          )}
-        >
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => onOpenDetails(item.id)}
-          >
-            <SubscriptionCard subscription={item} />
-          </TouchableOpacity>
-        </ReanimatedSwipeable>
-      </View>
+      <SwipeableCard
+        item={item}
+        onPress={onOpenDetails}
+        onDelete={handleDelete}
+        colors={colors}
+        openCardId={openCardId}
+        onOpenCard={setOpenCardId}
+      />
     ),
-    [onOpenDetails, handleDelete, colors],
+    [onOpenDetails, handleDelete, colors, openCardId],
   );
 
   return (
     <View style={styles.container}>
-      {/* Шапка стала чище: только настройки слева и плюс справа */}
       <View style={styles.header}>
         <View style={styles.headerSide}>
           <TouchableOpacity
@@ -172,7 +132,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         </View>
       </View>
 
-      {/* 🚀 СИНЯЯ КАРТОЧКА ТЕПЕРЬ КЛИКАБЕЛЬНАЯ */}
       <TouchableOpacity
         style={styles.totalCard}
         activeOpacity={0.85}
@@ -217,6 +176,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={() => setOpenCardId(null)}
+          // 🚀 Отключаем "резиновый" отскок сверху (чтобы не заезжало под шапку)
+          bounces={false}
+          // 🚀 Отключаем свечение/отскок на Android
+          overScrollMode="never"
         />
       )}
 
@@ -291,10 +255,7 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: "center",
       alignItems: "center",
     },
-    totalLabel: {
-      ...TYPOGRAPHY.caption,
-      color: "rgba(255,255,255,0.8)",
-    },
+    totalLabel: { ...TYPOGRAPHY.caption, color: "rgba(255,255,255,0.8)" },
     totalAmount: {
       fontSize: 36,
       fontWeight: "800",
@@ -314,7 +275,14 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: SPACING.xs,
       fontStyle: "italic",
     },
-    listContent: { paddingHorizontal: SPACING.lg, paddingBottom: 100 },
+
+    // 🚀 Уменьшили нижний отступ (было 120, стало 80)
+    listContent: {
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.xs,
+      paddingBottom: 80,
+    },
+
     emptyState: {
       flex: 1,
       justifyContent: "center",
