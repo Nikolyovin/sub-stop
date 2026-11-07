@@ -7,8 +7,8 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { format, differenceInCalendarDays } from "date-fns"; // 🚀 Изменили импорт
+import { Ionicons } from "@expo/vector-icons";
+import { format, differenceInCalendarDays } from "date-fns";
 import { ru } from "date-fns/locale";
 import Animated, {
   useSharedValue,
@@ -22,7 +22,8 @@ import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 import { Subscription } from "../types";
 import { HeaderBackButton } from "../components/ui/HeaderBackButton";
-import { getBrandData } from "../utils/brandUtils";
+import { getBrandData, getBrandBackground } from "../utils/brandUtils";
+import { BrandIcon } from "../components/ui/BrandIcon";
 
 interface SubscriptionDetailsScreenProps {
   subscriptionId: string;
@@ -33,17 +34,16 @@ interface SubscriptionDetailsScreenProps {
 export const SubscriptionDetailsScreen: React.FC<
   SubscriptionDetailsScreenProps
 > = ({ subscriptionId, onBack, onEdit }) => {
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { subscription, categoryData, costs, cycleInfo, removeSubscription } =
     useSubscriptionDetails(subscriptionId);
 
-  // 🚀 Считаем дни до конца триала
   const daysLeft = useMemo(() => {
     if (!subscription || subscription.status !== "trial") return null;
     return differenceInCalendarDays(
-      // 🚀 Используем CalendarDays
       new Date(subscription.nextPaymentDate),
       new Date(),
     );
@@ -51,7 +51,6 @@ export const SubscriptionDetailsScreen: React.FC<
 
   const isTrialEndingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
 
-  // 🚀 Анимация пульсации
   const pulse = useSharedValue(1);
   useEffect(() => {
     if (isTrialEndingSoon) {
@@ -92,20 +91,6 @@ export const SubscriptionDetailsScreen: React.FC<
   const isTrialExpired =
     subscription.status === "trial" &&
     new Date(subscription.nextPaymentDate) < new Date();
-
-  const renderBrandIcon = (size: number) => {
-    if (brand.id === "telegram")
-      return <Ionicons name="paper-plane" size={size} color={brand.color} />;
-    if (brand.id === "vk")
-      return <Ionicons name="logo-vk" size={size} color={brand.color} />;
-    return (
-      <MaterialCommunityIcons
-        name={brand.icon as any}
-        size={size}
-        color={brand.color}
-      />
-    );
-  };
 
   const handleBadgePress = () => {
     if (isTrialEndingSoon && daysLeft !== null) {
@@ -161,10 +146,10 @@ export const SubscriptionDetailsScreen: React.FC<
           <View
             style={[
               styles.iconWrapper,
-              { backgroundColor: `${brand.color}15` },
+              { backgroundColor: getBrandBackground(brand, isDark) },
             ]}
           >
-            {renderBrandIcon(36)}
+            <BrandIcon brand={brand} size={36} />
           </View>
           <View
             style={{
@@ -176,7 +161,6 @@ export const SubscriptionDetailsScreen: React.FC<
           >
             <Text style={styles.subName}>{subscription.name}</Text>
 
-            {/* 🚀 Обновленный бейдж с анимацией и обработчиком нажатия */}
             {subscription.status === "trial" && (
               <TouchableOpacity
                 onPress={handleBadgePress}
@@ -204,7 +188,7 @@ export const SubscriptionDetailsScreen: React.FC<
                       ? daysLeft === 0
                         ? "Сегодня"
                         : daysLeft === 1
-                          ? "Завтра" // 🚀 Добавили "Завтра"
+                          ? "Завтра"
                           : `${daysLeft} дн.`
                       : "TRIAL"}
                   </Text>
@@ -378,7 +362,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     subName: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 22 },
     subCategory: { ...TYPOGRAPHY.caption, color: colors.textSecondary },
-
     trialBadge: {
       flexDirection: "row",
       alignItems: "center",

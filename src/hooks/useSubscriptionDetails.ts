@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useSubscriptionStore } from "../store/useSubscriptionStore";
 import { CATEGORIES } from "../types";
-import { differenceInDays } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
 export const useSubscriptionDetails = (id: string | null) => {
   const { subscriptions, removeSubscription } = useSubscriptionStore();
@@ -38,7 +38,7 @@ export const useSubscriptionDetails = (id: string | null) => {
 
     const today = new Date();
     const paymentDate = new Date(subscription.nextPaymentDate);
-    const daysLeft = Math.max(0, differenceInDays(paymentDate, today));
+    const daysLeft = Math.max(0, differenceInCalendarDays(paymentDate, today));
 
     // Примерная длина цикла (30 дней для месяца, 365 для года)
     const totalDays = subscription.billingCycle === "monthly" ? 30 : 365;
@@ -54,7 +54,7 @@ export const useSubscriptionDetails = (id: string | null) => {
     subscription,
     categoryData,
     costs,
-    cycleInfo, // <-- Возвращаем инфу о днях
+    cycleInfo,
     removeSubscription,
   };
 };

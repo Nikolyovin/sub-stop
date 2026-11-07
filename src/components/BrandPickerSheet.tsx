@@ -17,8 +17,9 @@ import {
   BottomSheetBackdrop,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { KNOWN_BRANDS } from "../utils/brandUtils";
+import { Ionicons } from "@expo/vector-icons";
+import { KNOWN_BRANDS, getBrandBackground } from "../utils/brandUtils";
+import { BrandIcon } from "./ui/BrandIcon";
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 
@@ -31,21 +32,40 @@ export const BrandPickerSheet = React.forwardRef<
   { open: () => void },
   BrandPickerSheetProps
 >(({ onClose, onSelect }, ref) => {
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [search, setSearch] = useState("");
 
   const sheetRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["60%", "90%"], []); // Чуть увеличили, чтобы было удобнее
+  const snapPoints = useMemo(() => ["90%", "100%"], []);
 
   useImperativeHandle(ref, () => ({
     open: () => sheetRef.current?.present(),
   }));
 
+  // 🚀 Поиск с учетом синонимов (aliases)
   const filteredBrands = useMemo(() => {
-    if (!search.trim()) return KNOWN_BRANDS;
-    return KNOWN_BRANDS.filter((b) =>
-      b.name.toLowerCase().includes(search.toLowerCase()),
+    const query = search.trim().toLowerCase();
+    if (!query) return KNOWN_BRANDS;
+
+    return KNOWN_BRANDS.filter((b) => {
+      const nameMatch = b.name.toLowerCase().includes(query);
+      const aliasMatch = b.aliases?.some((alias) =>
+        alias.toLowerCase().includes(query),
+      );
+      return nameMatch || aliasMatch;
+    });
+  }, [search]);
+
+  // 🚀 Проверяем, есть ли точное совпадение (чтобы не предлагать "Создать", если бренд уже есть)
+  const hasExactMatch = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return true;
+    return KNOWN_BRANDS.some(
+      (b) =>
+        b.name.toLowerCase() === query ||
+        b.aliases?.some((alias) => alias.toLowerCase() === query),
     );
   }, [search]);
 
@@ -67,22 +87,6 @@ export const BrandPickerSheet = React.forwardRef<
     sheetRef.current?.dismiss();
   };
 
-  const renderIcon = (brand: any, size: number) => {
-    if (brand.id === "telegram") {
-      return <Ionicons name="paper-plane" size={size} color={brand.color} />;
-    }
-    if (brand.id === "vk") {
-      return <Ionicons name="logo-vk" size={size} color={brand.color} />;
-    }
-    return (
-      <MaterialCommunityIcons
-        name={brand.icon as any}
-        size={size}
-        color={brand.color}
-      />
-    );
-  };
-
   return (
     <BottomSheetModal
       ref={sheetRef}
@@ -92,12 +96,10 @@ export const BrandPickerSheet = React.forwardRef<
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: colors.background }}
       handleIndicatorStyle={{ backgroundColor: colors.border, width: 40 }}
-      // 🚀 РЕШЕНИЕ ПРОБЛЕМЫ:
-      enableDynamicSizing={false} // <-- Запрещает шторке сжиматься, когда список короткий
-      keyboardBehavior="interactive" // <-- Плавно поднимает шторку над клавиатурой
-      keyboardBlurBehavior="restore" // <-- Возвращает на исходную высоту
+      enableDynamicSizing={false}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
     >
-      {/* flex: 1 заставляет контент занять всю высоту шторки */}
       <View style={[styles.content, { flex: 1 }]}>
         <Text style={styles.title}>Выберите сервис</Text>
 
@@ -112,10 +114,25 @@ export const BrandPickerSheet = React.forwardRef<
           />
         </View>
 
+        {/* 🚀 Кнопка "Создать" наверху под поиском, если нет точного совпадения */}
+        {search.trim().length > 0 && !hasExactMatch && (
+          <TouchableOpacity
+            style={styles.inlineCreateBtn}
+            onPress={() => handleSelect(search)}
+          >
+            <Ionicons
+              name="add-circle-outline"
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={styles.inlineCreateBtnText}>Добавить "{search}"</Text>
+          </TouchableOpacity>
+        )}
+
         <BottomSheetScrollView
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled" // <-- Выбор бренда с первого тапа
-          contentContainerStyle={{ flexGrow: 1 }} // <-- Важно, чтобы пустое место было
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 150 }}
         >
           <View style={styles.grid}>
             {filteredBrands.map((brand) => (
@@ -127,10 +144,10 @@ export const BrandPickerSheet = React.forwardRef<
                 <View
                   style={[
                     styles.iconWrapper,
-                    { backgroundColor: `${brand.color}15` },
+                    { backgroundColor: getBrandBackground(brand, isDark) },
                   ]}
                 >
-                  {renderIcon(brand, 28)}
+                  <BrandIcon brand={brand} size={28} />
                 </View>
                 <Text style={styles.brandName} numberOfLines={1}>
                   {brand.name}
@@ -139,15 +156,9 @@ export const BrandPickerSheet = React.forwardRef<
             ))}
           </View>
 
-          {filteredBrands.length === 0 && (
+          {filteredBrands.length === 0 && search.trim() === "" && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Ничего не найдено</Text>
-              <TouchableOpacity
-                style={styles.customBtn}
-                onPress={() => handleSelect(search)}
-              >
-                <Text style={styles.customBtnText}>Создать "{search}"</Text>
-              </TouchableOpacity>
+              <Text style={styles.emptyText}>Начните вводить название</Text>
             </View>
           )}
         </BottomSheetScrollView>
@@ -158,7 +169,7 @@ export const BrandPickerSheet = React.forwardRef<
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    content: { paddingHorizontal: SPACING.lg },
+    content: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs },
     title: {
       ...TYPOGRAPHY.title,
       color: colors.textMain,
@@ -171,7 +182,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
       paddingHorizontal: SPACING.md,
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.md,
       height: 48,
       borderWidth: 1,
       borderColor: colors.border,
@@ -181,6 +192,20 @@ const createStyles = (colors: ThemeColors) =>
       marginLeft: SPACING.sm,
       fontSize: 16,
       color: colors.textMain,
+    },
+    inlineCreateBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: `${colors.primary}15`,
+      padding: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      marginBottom: SPACING.md,
+      gap: SPACING.sm,
+    },
+    inlineCreateBtnText: {
+      ...TYPOGRAPHY.body,
+      color: colors.primary,
+      fontWeight: "600",
     },
     grid: {
       flexDirection: "row",
@@ -208,11 +233,4 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       marginBottom: SPACING.md,
     },
-    customBtn: {
-      backgroundColor: colors.primary,
-      paddingVertical: SPACING.md,
-      paddingHorizontal: SPACING.xl,
-      borderRadius: BORDER_RADIUS.round,
-    },
-    customBtnText: { ...TYPOGRAPHY.button, color: colors.white },
   });

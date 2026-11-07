@@ -80,6 +80,9 @@ export const scheduleSubscriptionReminder = async (
     const nextPrice = subscription.regularPrice || subscription.price;
     title = "Заканчивается пробный период ⏳";
     body = `Через ${daysBefore} ${daysText} закончится промо-период на «${subscription.name}». Далее спишут ${nextPrice} ₽.`;
+  } else {
+    title = "Скоро списание! 💸";
+    body = `Через ${daysBefore} ${daysText} спишут ${subscription.price} ₽ за подписку «${subscription.name}».`;
   }
 
   await Notifications.scheduleNotificationAsync({

@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,9 +8,10 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { differenceInCalendarDays } from "date-fns"; // 🚀 Изменили на CalendarDays
+import { differenceInCalendarDays } from "date-fns";
 import { Subscription } from "../types";
-import { getBrandData } from "../utils/brandUtils";
+import { getBrandData, getBrandBackground } from "../utils/brandUtils";
+import { BrandIcon } from "./ui/BrandIcon";
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 
@@ -21,24 +22,21 @@ interface SubscriptionCardProps {
 export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   subscription,
 }) => {
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
   const styles = useMemo(() => createStyles(colors), [colors]);
   const brand = getBrandData(subscription.name);
 
-  // 🚀 Считаем, сколько дней осталось до конца триала
   const daysLeft = useMemo(() => {
     if (subscription.status !== "trial") return null;
-    const diff = differenceInCalendarDays(
-      // 🚀 Используем CalendarDays
+    return differenceInCalendarDays(
       new Date(subscription.nextPaymentDate),
       new Date(),
     );
-    return diff;
   }, [subscription]);
 
   const isEndingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
 
-  // 🚀 Анимация пульсации
   const pulse = useSharedValue(1);
   useEffect(() => {
     if (isEndingSoon) {
@@ -53,7 +51,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     } else {
       pulse.value = 1;
     }
-  }, [isEndingSoon, pulse]);
+  }, [isEndingSoon]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
@@ -79,28 +77,15 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     }
   };
 
-  const renderIcon = (size: number) => {
-    if (brand.id === "telegram") {
-      return <Ionicons name="paper-plane" size={size} color={brand.color} />;
-    }
-    if (brand.id === "vk") {
-      return <Ionicons name="logo-vk" size={size} color={brand.color} />;
-    }
-    return (
-      <MaterialCommunityIcons
-        name={brand.icon as any}
-        size={size}
-        color={brand.color}
-      />
-    );
-  };
-
   return (
     <View style={styles.card}>
       <View
-        style={[styles.iconContainer, { backgroundColor: `${brand.color}15` }]}
+        style={[
+          styles.iconContainer,
+          { backgroundColor: getBrandBackground(brand, isDark) },
+        ]}
       >
-        {renderIcon(24)}
+        <BrandIcon brand={brand} size={24} />
       </View>
 
       <View style={styles.info}>
@@ -109,7 +94,6 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             {subscription.name}
           </Text>
 
-          {/* 🚀 Бейдж становится кликабельным */}
           {subscription.status === "trial" && (
             <TouchableOpacity
               onPress={handleBadgePress}
@@ -132,7 +116,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                     ? daysLeft === 0
                       ? "Сегодня"
                       : daysLeft === 1
-                        ? "Завтра" // 🚀 Добавили "Завтра"
+                        ? "Завтра"
                         : `${daysLeft} дн.`
                     : "TRIAL"}
                 </Text>

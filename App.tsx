@@ -21,7 +21,6 @@ type ScreenState = "main" | "form" | "details" | "settings" | "statistics";
 const AppContent = () => {
   const [screen, setScreen] = useState<ScreenState>("main");
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
-  // 🚀 Храним, на каком поле сфокусироваться в форме
   const [focusField, setFocusField] = useState<"note" | undefined>(undefined);
 
   const subscriptions = useSubscriptionStore((state) => state.subscriptions);
@@ -35,7 +34,7 @@ const AppContent = () => {
         <MainScreen
           onAddPress={() => {
             setSelectedSubId(null);
-            setFocusField(undefined); // Сбрасываем фокус
+            setFocusField(undefined);
             setScreen("form");
           }}
           onOpenDetails={(id) => {
@@ -53,7 +52,7 @@ const AppContent = () => {
           onBack={() => setScreen("main")}
           onEdit={(sub, focus) => {
             setSelectedSubId(sub.id);
-            setFocusField(focus); // 🚀 Передаем фокус в форму
+            setFocusField(focus);
             setScreen("form");
           }}
         />
@@ -63,7 +62,7 @@ const AppContent = () => {
         <SubscriptionFormScreen
           initialData={subToEdit}
           onBack={() => setScreen(selectedSubId ? "details" : "main")}
-          focusField={focusField} // 🚀 Передаем пропс
+          focusField={focusField}
         />
       )}
 
@@ -113,16 +112,17 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <ThemeProvider>
+      {/* 🚀 ТЕПЕРЬ ThemeProvider СНАРУЖИ, А BottomSheetModalProvider ВНУТРИ */}
+      <ThemeProvider>
+        <BottomSheetModalProvider>
           <StatusBar style="auto" />
           {showOnboarding ? (
             <OnboardingScreen onFinish={() => setShowOnboarding(false)} />
           ) : (
             <AppContent />
           )}
-        </ThemeProvider>
-      </BottomSheetModalProvider>
+        </BottomSheetModalProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
