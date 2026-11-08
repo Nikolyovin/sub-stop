@@ -1,7 +1,14 @@
 import { useMemo } from "react";
 import { useSubscriptionStore } from "../store/useSubscriptionStore";
-import { CATEGORIES } from "../types";
+import { CATEGORIES, Subscription } from "../types";
 import { differenceInCalendarDays } from "date-fns";
+
+const getActualPrice = (sub: Subscription) => {
+  if (sub.status === "active" && sub.price === 0 && sub.regularPrice) {
+    return sub.regularPrice;
+  }
+  return sub.price;
+};
 
 export const useSubscriptionDetails = (id: string | null) => {
   const { subscriptions, removeSubscription } = useSubscriptionStore();
@@ -17,13 +24,13 @@ export const useSubscriptionDetails = (id: string | null) => {
     );
   }, [subscription]);
 
-  // Считаем цены (текущую и будущую)
+  // Считаем цены
   const costs = useMemo(() => {
     if (!subscription) return { monthly: 0, yearly: 0, futureMonthly: 0 };
     const isYearly = subscription.billingCycle === "yearly";
 
-    const currentPrice = subscription.price;
-    const futurePrice = subscription.regularPrice || subscription.price;
+    const currentPrice = getActualPrice(subscription);
+    const futurePrice = subscription.regularPrice || currentPrice;
 
     return {
       monthly: isYearly ? Math.round(currentPrice / 12) : currentPrice,
@@ -40,10 +47,7 @@ export const useSubscriptionDetails = (id: string | null) => {
     const paymentDate = new Date(subscription.nextPaymentDate);
     const daysLeft = Math.max(0, differenceInCalendarDays(paymentDate, today));
 
-    // Примерная длина цикла (30 дней для месяца, 365 для года)
     const totalDays = subscription.billingCycle === "monthly" ? 30 : 365;
-
-    // Сколько дней прошло из цикла
     const daysPassed = Math.max(0, totalDays - daysLeft);
     const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100));
 

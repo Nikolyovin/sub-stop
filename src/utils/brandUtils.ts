@@ -43,7 +43,7 @@ export const KNOWN_BRANDS: Brand[] = [
   {
     id: "t2",
     name: "Т2",
-    icon: "cellphone",
+    icon: "sim-outline",
     color: "#000000",
     iconFamily: "material",
     aliases: ["теле2", "т2", "tele2"],

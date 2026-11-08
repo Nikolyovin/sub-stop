@@ -1,6 +1,13 @@
 import { useMemo } from "react";
 import { useSubscriptionStore } from "../store/useSubscriptionStore";
-import { CATEGORIES, Category } from "../types";
+import { CATEGORIES, Category, Subscription } from "../types";
+
+const getActualPrice = (sub: Subscription) => {
+  if (sub.status === "active" && sub.price === 0 && sub.regularPrice) {
+    return sub.regularPrice;
+  }
+  return sub.price;
+};
 
 export interface CategoryStat {
   category: Category;
@@ -15,36 +22,39 @@ export const useStatistics = () => {
   const { subscriptions } = useSubscriptionStore();
 
   const stats = useMemo(() => {
-    // 1. Текущие траты (включая платные триалы)
+    // 1. Текущие траты
     const activeSubs = subscriptions.filter(
       (sub) =>
-        sub.status === "active" || (sub.status === "trial" && sub.price > 0),
+        sub.status === "active" ||
+        (sub.status === "trial" && getActualPrice(sub) > 0),
     );
+
     const totalMonthly = activeSubs.reduce((sum, sub) => {
+      const actualPrice = getActualPrice(sub);
       const monthlyCost =
-        sub.billingCycle === "yearly" ? sub.price / 12 : sub.price;
+        sub.billingCycle === "yearly" ? actualPrice / 12 : actualPrice;
       return sum + monthlyCost;
     }, 0);
 
-    // 2. Будущие траты (активные + триалы по regularPrice)
+    // 2. Будущие траты
     const futureTotalMonthly = subscriptions.reduce((sum, sub) => {
       const priceToUse =
         sub.status === "trial" && sub.regularPrice
           ? sub.regularPrice
-          : sub.price;
+          : getActualPrice(sub);
       const monthlyCost =
         sub.billingCycle === "yearly" ? priceToUse / 12 : priceToUse;
       return sum + monthlyCost;
     }, 0);
 
-    // Разница
     const difference = futureTotalMonthly - totalMonthly;
 
-    // 3. Группировка по категориям (только для текущих трат)
+    // 3. Группировка по категориям
     const categoryTotals = activeSubs.reduce(
       (acc, sub) => {
+        const actualPrice = getActualPrice(sub);
         const monthlyCost =
-          sub.billingCycle === "yearly" ? sub.price / 12 : sub.price;
+          sub.billingCycle === "yearly" ? actualPrice / 12 : actualPrice;
         acc[sub.category] = (acc[sub.category] || 0) + monthlyCost;
         return acc;
       },

@@ -49,6 +49,7 @@ export const SubscriptionDetailsScreen: React.FC<
     );
   }, [subscription]);
 
+  const isTrial = subscription?.status === "trial";
   const isTrialEndingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
 
   const pulse = useSharedValue(1);
@@ -161,7 +162,8 @@ export const SubscriptionDetailsScreen: React.FC<
           >
             <Text style={styles.subName}>{subscription.name}</Text>
 
-            {subscription.status === "trial" && (
+            {/* 🚀 Обновленный бейдж триала */}
+            {isTrial && (
               <TouchableOpacity
                 onPress={handleBadgePress}
                 activeOpacity={isTrialEndingSoon ? 0.6 : 1}
@@ -185,11 +187,7 @@ export const SubscriptionDetailsScreen: React.FC<
                   )}
                   <Text style={styles.trialBadgeText}>
                     {isTrialEndingSoon
-                      ? daysLeft === 0
-                        ? "Сегодня"
-                        : daysLeft === 1
-                          ? "Завтра"
-                          : `${daysLeft} дн.`
+                      ? `TRIAL • ${daysLeft === 0 ? "Сегодня" : daysLeft === 1 ? "Завтра" : `${daysLeft} дн.`}`
                       : "TRIAL"}
                   </Text>
                 </View>
@@ -220,12 +218,11 @@ export const SubscriptionDetailsScreen: React.FC<
         <View style={styles.statsGrid}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>
-              {subscription.status === "trial" ? "Сейчас" : "В месяц"}
+              {isTrial ? "Сейчас" : "В месяц"}
             </Text>
             <Text style={styles.statValue}>{costs.monthly} ₽</Text>
           </View>
-          {subscription.status === "trial" &&
-          costs.futureMonthly > costs.monthly ? (
+          {isTrial && costs.futureMonthly > costs.monthly ? (
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>После триала</Text>
               <Text style={[styles.statValue, { color: colors.danger }]}>
@@ -242,8 +239,16 @@ export const SubscriptionDetailsScreen: React.FC<
 
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressTitle}>До следующего платежа</Text>
-            <Text style={styles.progressValue}>{cycleInfo.daysLeft} дн.</Text>
+            <Text style={styles.progressTitle}>
+              {isTrial ? "Конец пробного периода" : "Следующее списание"}
+            </Text>
+            <Text style={styles.progressValue}>
+              {cycleInfo.daysLeft === 0
+                ? "Сегодня"
+                : cycleInfo.daysLeft === 1
+                  ? "Завтра"
+                  : `Через ${cycleInfo.daysLeft} дн.`}
+            </Text>
           </View>
           <View style={styles.progressBarBg}>
             <View
@@ -263,9 +268,7 @@ export const SubscriptionDetailsScreen: React.FC<
           />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>
-              {subscription.status === "trial"
-                ? "Конец пробного периода"
-                : "Следующее списание"}
+              {isTrial ? "Конец пробного периода" : "Следующее списание"}
             </Text>
             <Text style={styles.infoValue}>{formattedDate}</Text>
           </View>
