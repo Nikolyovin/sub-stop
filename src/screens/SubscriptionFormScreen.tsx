@@ -41,12 +41,14 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   const bottomSheetRef = useRef<{ open: () => void }>(null);
   const noteInputRef = useRef<any>(null);
   const scrollViewRef = useRef<any>(null);
 
   const form = useSubscriptionForm(onBack, initialData);
 
+  // 🚀 Следим за клавиатурой, чтобы менять paddingBottom только когда она открыта
   useEffect(() => {
     const showEvent =
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -55,10 +57,12 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
       setKeyboardHeight(e.endCoordinates.height);
-      setTimeout(
-        () => scrollViewRef.current?.scrollToEnd({ animated: true }),
-        100,
-      );
+      // Если фокус на заметке, скроллим вниз после того, как клавиатура выехала
+      if (noteInputRef.current?.isFocused()) {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
@@ -102,16 +106,19 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
       >
         <ScrollView
           ref={scrollViewRef}
+          style={{ flex: 1 }}
+          // 🚀 МАГИЯ: если клавиатура открыта, добавляем её высоту в отступ. Если закрыта — стандартный 24px.
           contentContainerStyle={[
             styles.form,
             {
               paddingBottom:
-                keyboardHeight > 0 ? keyboardHeight + 40 : SPACING.lg,
+                keyboardHeight > 0 ? keyboardHeight + 20 : SPACING.xl,
             },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         >
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Название</Text>
@@ -241,6 +248,14 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
             maxLength={100}
             returnKeyType="done"
             onSubmitEditing={() => Keyboard.dismiss()}
+            onFocus={() => {
+              if (Platform.OS === "android") {
+                setTimeout(
+                  () => scrollViewRef.current?.scrollToEnd({ animated: true }),
+                  300,
+                );
+              }
+            }}
           />
 
           <TouchableOpacity
@@ -277,7 +292,6 @@ const createStyles = (colors: ThemeColors) =>
     headerTitle: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
     placeholder: { width: 44 },
 
-    // 🚀 Убрали огромные отступы
     form: {
       paddingHorizontal: SPACING.lg,
     },
@@ -286,18 +300,17 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
       marginBottom: SPACING.xs,
-      marginTop: SPACING.sm, // 🚀 Немного сжали верхний отступ у заголовков
+      marginTop: SPACING.sm,
     },
     inputGroup: { marginBottom: SPACING.sm },
 
-    // 🚀 Уменьшили высоту полей (padding)
     selectorInput: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
-      paddingVertical: 12, // 🚀 Было SPACING.md (16)
+      paddingVertical: 12,
       paddingHorizontal: SPACING.md,
       borderWidth: 1,
       borderColor: colors.border,
@@ -317,7 +330,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     statusBtn: {
       flex: 1,
-      paddingVertical: 12, // 🚀 Сделали кнопки компактнее
+      paddingVertical: 12,
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: colors.card,
       borderWidth: 1,
@@ -339,7 +352,6 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "bold",
     },
 
-    // 🚀 Уменьшили высоту инпута даты
     dateInput: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
@@ -351,7 +363,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     dateText: { fontSize: 16, color: colors.textMain },
 
-    // 🚀 Поле заметки теперь стандартной высоты (56px вместо 80px)
     noteInput: {
       height: 56,
       textAlignVertical: "center",
@@ -359,13 +370,12 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
     },
 
-    // 🚀 Убрали гигантский marginTop у кнопки
     saveBtn: {
       backgroundColor: colors.primary,
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.round,
       alignItems: "center",
-      marginTop: SPACING.lg, // 🚀 Было SPACING.xl (32), стало 24
+      marginTop: SPACING.lg,
     },
     saveBtnDisabled: { opacity: 0.5 },
     saveBtnText: { ...TYPOGRAPHY.button, color: colors.white, fontSize: 18 },
