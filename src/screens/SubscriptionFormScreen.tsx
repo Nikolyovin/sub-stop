@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -11,26 +17,24 @@ import {
   Keyboard,
   Alert,
   BackHandler,
-} from 'react-native'
-import DateTimePicker from '@react-native-community/datetimepicker'
-import { Ionicons } from '@expo/vector-icons'
-import { format } from 'date-fns'
-
-import { useSubscriptionForm } from '../hooks/useSubscriptionForm'
-import { InputField } from '../components/ui/InputField'
-import { CycleSelector } from '../components/ui/CycleSelector'
-import { CategorySelector } from '../components/ui/CategorySelector'
-import { HeaderBackButton } from '../components/ui/HeaderBackButton'
-import { BrandPickerSheet } from '../components/BrandPickerSheet'
-
-import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../theme'
-import { useTheme } from '../theme/ThemeContext'
-import { Subscription } from '../types'
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import { format } from "date-fns";
+import { useSubscriptionForm } from "../hooks/useSubscriptionForm";
+import { InputField } from "../components/ui/InputField";
+import { CycleSelector } from "../components/ui/CycleSelector";
+import { CategorySelector } from "../components/ui/CategorySelector";
+import { HeaderBackButton } from "../components/ui/HeaderBackButton";
+import { BrandPickerSheet } from "../components/BrandPickerSheet";
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
+import { useTheme } from "../theme/ThemeContext";
+import { Subscription } from "../types";
 
 interface SubscriptionFormScreenProps {
-  onBack: () => void
-  initialData?: Subscription
-  focusField?: 'note'
+  onBack: () => void;
+  initialData?: Subscription;
+  focusField?: "note";
 }
 
 export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
@@ -38,101 +42,103 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
   initialData,
   focusField,
 }) => {
-  const { colors } = useTheme()
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const bottomSheetRef = useRef<{ open: () => void }>(null)
-  const noteInputRef = useRef<any>(null)
-  const scrollViewRef = useRef<any>(null)
+  const bottomSheetRef = useRef<{ open: () => void }>(null);
+  const noteInputRef = useRef<any>(null);
+  const scrollViewRef = useRef<any>(null);
 
-  const form = useSubscriptionForm(onBack, initialData)
+  const form = useSubscriptionForm(onBack, initialData);
 
-  // 🚀 1. Функция выхода с проверкой на изменения
   const handleBack = useCallback(() => {
     if (!form.hasChanges) {
-      onBack()
-      return
+      onBack();
+      return;
     }
+    Alert.alert("Выйти без сохранения?", "Введенные данные не сохранятся.", [
+      { text: "Остаться", style: "cancel" },
+      { text: "Выйти", style: "destructive", onPress: onBack },
+    ]);
+  }, [form.hasChanges, onBack]);
 
-    Alert.alert('Выйти без сохранения?', 'Введенные данные не сохранятся.', [
-      { text: 'Остаться', style: 'cancel' },
-      { text: 'Выйти', style: 'destructive', onPress: onBack },
-    ])
-  }, [form.hasChanges, onBack])
-
-  // 🚀 2. Перехватываем системную кнопку "Назад" на Android
   useEffect(() => {
     const backAction = () => {
-      handleBack()
-      return true // Блокируем стандартный выход из приложения/экрана
-    }
-
+      handleBack();
+      return true;
+    };
     const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
+      "hardwareBackPress",
       backAction,
-    )
+    );
+    return () => backHandler.remove();
+  }, [handleBack]);
 
-    return () => backHandler.remove()
-  }, [handleBack])
-
-  // 🚀 3. Следим за клавиатурой для умного скролла
   useEffect(() => {
     const showEvent =
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent =
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
-
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      setKeyboardHeight(e.endCoordinates.height)
+      setKeyboardHeight(e.endCoordinates.height);
       if (noteInputRef.current?.isFocused()) {
         setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true })
-        }, 100)
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
       }
-    })
-
+    });
     const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0)
-    })
-
+      setKeyboardHeight(0);
+    });
     return () => {
-      showSub.remove()
-      hideSub.remove()
-    }
-  }, [])
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
-    if (focusField === 'note') {
+    if (focusField === "note") {
       const timer = setTimeout(() => {
-        noteInputRef.current?.focus()
-      }, 300)
-      return () => clearTimeout(timer)
+        noteInputRef.current?.focus();
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [focusField])
+  }, [focusField]);
 
   const onDateChange = (event: any, date?: Date) => {
-    if (Platform.OS === 'android') setShowDatePicker(false)
-    if (date) form.setDate(date)
-  }
+    if (Platform.OS === "android") setShowDatePicker(false);
+    if (date) form.setDate(date);
+  };
+
+  // 🚀 Фильтруем ввод: только цифры
+  const handlePriceChange = (text: string, setter: (val: string) => void) => {
+    const cleaned = text.replace(/[^0-9]/g, "");
+    setter(cleaned);
+  };
+
+  const isPriceInvalid = form.price.length > 0 && isNaN(Number(form.price));
+  const isRegularPriceInvalid =
+    form.status === "trial" &&
+    form.regularPrice.length > 0 &&
+    isNaN(Number(form.regularPrice));
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        {/* 🚀 Заменили onBack на handleBack */}
         <HeaderBackButton onPress={handleBack} />
         <Text style={styles.headerTitle}>
-          {form.isEditing ? 'Редактирование' : 'Новая подписка'}
+          {form.isEditing ? "Редактирование" : "Новая подписка"}
         </Text>
         <View style={styles.placeholder} />
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <ScrollView
           ref={scrollViewRef}
@@ -145,9 +151,9 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
             },
           ]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps='handled'
-          keyboardDismissMode='on-drag'
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           alwaysBounceVertical={false}
         >
           <View style={styles.inputGroup}>
@@ -164,10 +170,10 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
                     : styles.selectorTextPlaceholder
                 }
               >
-                {form.name || 'Выберите или введите название'}
+                {form.name || "Выберите или введите название"}
               </Text>
               <Ionicons
-                name='chevron-down'
+                name="chevron-down"
                 size={20}
                 color={colors.textSecondary}
               />
@@ -179,13 +185,13 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
             <TouchableOpacity
               style={[
                 styles.statusBtn,
-                form.status === 'active' && styles.statusBtnActive,
+                form.status === "active" && styles.statusBtnActive,
               ]}
-              onPress={() => form.setStatus('active')}
+              onPress={() => form.setStatus("active")}
             >
               <Text
                 style={
-                  form.status === 'active'
+                  form.status === "active"
                     ? styles.statusTextActive
                     : styles.statusText
                 }
@@ -196,13 +202,13 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
             <TouchableOpacity
               style={[
                 styles.statusBtn,
-                form.status === 'trial' && styles.statusBtnActive,
+                form.status === "trial" && styles.statusBtnActive,
               ]}
-              onPress={() => form.setStatus('trial')}
+              onPress={() => form.setStatus("trial")}
             >
               <Text
                 style={
-                  form.status === 'trial'
+                  form.status === "trial"
                     ? styles.statusTextActive
                     : styles.statusText
                 }
@@ -214,23 +220,27 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
           <InputField
             label={
-              form.status === 'trial'
-                ? 'Стоимость во время промо (₽)'
-                : 'Стоимость (₽)'
+              form.status === "trial"
+                ? "Стоимость во время промо (₽)"
+                : "Стоимость (₽)"
             }
             value={form.price}
-            onChangeText={form.setPrice}
-            placeholder='0'
-            keyboardType='numeric'
+            onChangeText={(text) => handlePriceChange(text, form.setPrice)}
+            placeholder="0"
+            keyboardType="numeric"
+            error={isPriceInvalid ? "Введите число" : undefined}
           />
 
-          {form.status === 'trial' && (
+          {form.status === "trial" && (
             <InputField
-              label='Стоимость после окончания (₽)'
+              label="Стоимость после окончания (₽)"
               value={form.regularPrice}
-              onChangeText={form.setRegularPrice}
-              placeholder='Например, 599'
-              keyboardType='numeric'
+              onChangeText={(text) =>
+                handlePriceChange(text, form.setRegularPrice)
+              }
+              placeholder="Например, 599"
+              keyboardType="numeric"
+              error={isRegularPriceInvalid ? "Введите число" : undefined}
             />
           )}
 
@@ -243,24 +253,24 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
           />
 
           <Text style={styles.label}>
-            {form.status === 'trial'
-              ? 'Дата окончания триала (первое списание)'
-              : 'Дата следующего списания'}
+            {form.status === "trial"
+              ? "Дата окончания триала (первое списание)"
+              : "Дата следующего списания"}
           </Text>
           <TouchableOpacity
             style={styles.dateInput}
             onPress={() => setShowDatePicker(true)}
           >
             <Text style={styles.dateText}>
-              {format(form.date, 'dd.MM.yyyy')}
+              {format(form.date, "dd.MM.yyyy")}
             </Text>
           </TouchableOpacity>
 
           {showDatePicker && (
             <DateTimePicker
               value={form.date}
-              mode='date'
-              display='default'
+              mode="date"
+              display="default"
               onValueChange={onDateChange}
               onDismiss={() => setShowDatePicker(false)}
               minimumDate={new Date()}
@@ -271,20 +281,19 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
           <TextInput
             ref={noteInputRef}
             style={[styles.dateInput, styles.noteInput]}
-            placeholder='Например, аккаунт или когда отменить'
+            placeholder="Например, аккаунт или когда отменить"
             placeholderTextColor={colors.textSecondary}
             value={form.note}
             onChangeText={form.setNote}
             maxLength={100}
-            returnKeyType='done'
+            returnKeyType="done"
             onSubmitEditing={() => Keyboard.dismiss()}
             onFocus={() => {
-              if (Platform.OS === 'android') {
+              if (Platform.OS === "android")
                 setTimeout(
                   () => scrollViewRef.current?.scrollToEnd({ animated: true }),
                   300,
-                )
-              }
+                );
             }}
           />
 
@@ -294,7 +303,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
             disabled={!form.isValid}
           >
             <Text style={styles.saveBtnText}>
-              {form.isEditing ? 'Сохранить изменения' : 'Добавить'}
+              {form.isEditing ? "Сохранить изменения" : "Добавить"}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -306,26 +315,29 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
         onClose={() => {}}
       />
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
+      height: 56,
       marginBottom: SPACING.md,
     },
-    headerTitle: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
-    placeholder: { width: 44 },
-
-    form: {
-      paddingHorizontal: SPACING.lg,
+    headerTitle: {
+      flex: 1,
+      textAlign: "center",
+      ...TYPOGRAPHY.title,
+      color: colors.textMain,
+      fontSize: 22,
     },
-
+    placeholder: { width: 44 },
+    form: { paddingHorizontal: SPACING.lg },
     label: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
@@ -333,11 +345,10 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: SPACING.sm,
     },
     inputGroup: { marginBottom: SPACING.sm },
-
     selectorInput: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
       paddingVertical: 12,
@@ -350,11 +361,10 @@ const createStyles = (colors: ThemeColors) =>
     selectorTextActive: {
       fontSize: 16,
       color: colors.textMain,
-      fontWeight: '500',
+      fontWeight: "500",
     },
-
     statusRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: SPACING.md,
       marginBottom: SPACING.md,
     },
@@ -365,7 +375,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      alignItems: 'center',
+      alignItems: "center",
     },
     statusBtnActive: {
       backgroundColor: colors.primary,
@@ -374,14 +384,13 @@ const createStyles = (colors: ThemeColors) =>
     statusText: {
       ...TYPOGRAPHY.body,
       color: colors.textMain,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     statusTextActive: {
       ...TYPOGRAPHY.body,
       color: colors.white,
-      fontWeight: 'bold',
+      fontWeight: "bold",
     },
-
     dateInput: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
@@ -392,21 +401,19 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.md,
     },
     dateText: { fontSize: 16, color: colors.textMain },
-
     noteInput: {
       height: 56,
-      textAlignVertical: 'center',
+      textAlignVertical: "center",
       fontSize: 16,
       color: colors.textMain,
     },
-
     saveBtn: {
       backgroundColor: colors.primary,
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.round,
-      alignItems: 'center',
+      alignItems: "center",
       marginTop: SPACING.md,
     },
     saveBtnDisabled: { opacity: 0.5 },
     saveBtnText: { ...TYPOGRAPHY.button, color: colors.white, fontSize: 18 },
-  })
+  });

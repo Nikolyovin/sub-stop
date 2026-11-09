@@ -1,15 +1,24 @@
-import React, { useMemo } from 'react'
-import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { SPACING, TYPOGRAPHY, ThemeColors } from '../../theme'
-import { useTheme } from '../../theme/ThemeContext'
+import React, { useMemo } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { SPACING, TYPOGRAPHY, ThemeColors } from "../../theme";
+import { useTheme } from "../../theme/ThemeContext";
 
 interface SettingsRowProps {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  value?: boolean
-  onToggle?: () => void
-  onPress?: () => void
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  value?: boolean;
+  onToggle?: () => void;
+  onPress?: () => void;
+  disabled?: boolean;
+  isLoading?: boolean;
 }
 
 export const SettingsRow: React.FC<SettingsRowProps> = ({
@@ -18,53 +27,81 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
   value,
   onToggle,
   onPress,
+  disabled = false,
+  isLoading = false,
 }) => {
-  const { colors } = useTheme()
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const content = (
-    <View style={styles.container}>
+    <View style={[styles.container, disabled && { opacity: 0.5 }]}>
       <View style={styles.left}>
-        <Ionicons name={icon} size={22} color={colors.primary} />
-        <Text style={styles.title}>{title}</Text>
-      </View>
-      {onToggle !== undefined ? (
-        <Switch
-          value={value}
-          onValueChange={onToggle}
-          trackColor={{ false: colors.border, true: colors.primary }}
+        <Ionicons
+          name={icon}
+          size={20}
+          color={disabled ? colors.textSecondary : colors.primary}
         />
+        <Text
+          style={[styles.title, disabled && { color: colors.textSecondary }]}
+        >
+          {title}
+        </Text>
+      </View>
+
+      {onToggle !== undefined ? (
+        isLoading ? (
+          <View
+            style={{
+              position: "relative",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Switch value={false} disabled={true} style={{ opacity: 0 }} />
+            <View style={{ position: "absolute" }}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          </View>
+        ) : (
+          <Switch
+            value={value}
+            onValueChange={onToggle}
+            disabled={disabled}
+            trackColor={{ false: colors.border, true: colors.primary }}
+          />
+        )
       ) : (
         <Ionicons
-          name='chevron-forward'
+          name="chevron-forward"
           size={20}
-          color={colors.textSecondary}
+          color={disabled ? colors.border : colors.textSecondary}
         />
       )}
     </View>
-  )
+  );
 
-  if (onPress) {
+  if (onPress && !disabled) {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
         {content}
       </TouchableOpacity>
-    )
+    );
   }
-  return content
-}
+  return content;
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       backgroundColor: colors.card,
-      padding: SPACING.md,
+      paddingHorizontal: SPACING.md,
       borderRadius: 16,
       marginBottom: SPACING.sm,
+      height: 56, // 🚀 ЖЕСТКО ЗАДАЕМ ВЫСОТУ
     },
-    left: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
-    title: { ...TYPOGRAPHY.body, color: colors.textMain, fontSize: 16 },
-  })
+    left: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+    title: { ...TYPOGRAPHY.body, color: colors.textMain, fontSize: 15 },
+  });

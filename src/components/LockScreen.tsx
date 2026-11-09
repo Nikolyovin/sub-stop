@@ -1,40 +1,64 @@
-import React, { useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { useTheme } from '../theme/ThemeContext'
-import { SPACING, TYPOGRAPHY, ThemeColors } from '../theme'
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../theme/ThemeContext";
+import { SPACING, TYPOGRAPHY, ThemeColors } from "../theme";
 
 interface LockScreenProps {
-  onUnlock: () => void
+  onUnlock: () => void;
+  isAuthenticating: boolean; // 🚀 Добавили пропс
 }
 
-export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
-  const { colors } = useTheme()
-  const styles = createStyles(colors)
+export const LockScreen: React.FC<LockScreenProps> = ({
+  onUnlock,
+  isAuthenticating,
+}) => {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
-  // Автоматически вызываем FaceID/TouchID при появлении
+  // 🚀 Защита от бесконечного цикла: вызываем биометрию только 1 раз при открытии
+  const hasAutoPrompted = useRef(false);
+
   useEffect(() => {
-    onUnlock()
-  }, [onUnlock])
+    if (!hasAutoPrompted.current) {
+      hasAutoPrompted.current = true;
+      onUnlock();
+    }
+  }, [onUnlock]);
 
   return (
     <View style={styles.container}>
-      <Ionicons name='lock-closed' size={64} color={colors.primary} />
+      <Ionicons name="lock-closed" size={64} color={colors.primary} />
       <Text style={styles.title}>Приложение заблокировано</Text>
-      <TouchableOpacity style={styles.button} onPress={onUnlock}>
-        <Text style={styles.buttonText}>Разблокировать</Text>
+
+      <TouchableOpacity
+        style={[styles.button, isAuthenticating && { opacity: 0.7 }]}
+        onPress={onUnlock}
+        disabled={isAuthenticating}
+      >
+        {isAuthenticating ? (
+          <ActivityIndicator color={colors.white} />
+        ) : (
+          <Text style={styles.buttonText}>Разблокировать</Text>
+        )}
       </TouchableOpacity>
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       padding: SPACING.xl,
     },
     title: {
@@ -42,13 +66,16 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
       marginTop: SPACING.lg,
       marginBottom: SPACING.xl,
-      textAlign: 'center',
+      textAlign: "center",
     },
     button: {
       backgroundColor: colors.primary,
       paddingHorizontal: SPACING.xl,
       paddingVertical: SPACING.md,
       borderRadius: 999,
+      minWidth: 200, // Фиксируем ширину, чтобы лоадер не прыгал
+      alignItems: "center",
+      justifyContent: "center",
     },
     buttonText: { ...TYPOGRAPHY.button, color: colors.white },
-  })
+  });
