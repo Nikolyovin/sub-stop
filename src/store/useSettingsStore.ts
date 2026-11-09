@@ -4,24 +4,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 interface SettingsState {
   notificationsEnabled: boolean
-  notificationDaysBefore: number
+  notifyTrials: boolean // 🚀 Уведомления по триалам
+  notifyRegular: boolean // 🚀 Уведомления по платным подпискам
+
   toggleNotifications: () => void
-  setNotificationDaysBefore: (days: number) => void
+  toggleNotifyTrials: () => void
+  toggleNotifyRegular: () => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       notificationsEnabled: true,
-      notificationDaysBefore: 2,
-      
+      notifyTrials: true,
+      notifyRegular: true,
+
       toggleNotifications: () =>
         set((state) => ({
           notificationsEnabled: !state.notificationsEnabled,
         })),
-        
-      setNotificationDaysBefore: (days) => 
-        set({ notificationDaysBefore: days }),
+
+      toggleNotifyTrials: () =>
+        set((state) => ({ notifyTrials: !state.notifyTrials })),
+
+      toggleNotifyRegular: () =>
+        set((state) => ({ notifyRegular: !state.notifyRegular })),
     }),
     {
       name: 'sub-stop-settings',
