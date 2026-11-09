@@ -14,10 +14,13 @@ export const useSubscriptionForm = (
 ) => {
   const { addSubscriptionAndReturn, updateSubscription } =
     useSubscriptionStore()
-
-  // Получаем новые настройки уведомлений
-  const { notificationsEnabled, notifyTrials, notifyRegular } =
-    useSettingsStore()
+  const {
+    notificationsEnabled,
+    notifyTrials,
+    notifyRegular,
+    reminderHour,
+    reminderMinute,
+  } = useSettingsStore()
 
   const [status, setStatus] = useState<SubscriptionStatus>(
     initialData?.status || 'active',
@@ -56,7 +59,6 @@ export const useSubscriptionForm = (
     [initialData],
   )
 
-  // Проверяем, изменилось ли что-то (для защиты от случайного выхода)
   const hasChanges = useMemo(() => {
     return (
       name !== initialFormValues.name ||
@@ -101,11 +103,12 @@ export const useSubscriptionForm = (
       note: note.trim(),
     }
 
-    // Собираем объект настроек для сервиса уведомлений
     const settingsPayload = {
       enabled: notificationsEnabled,
       notifyTrials,
       notifyRegular,
+      hour: reminderHour,
+      minute: reminderMinute,
     }
 
     if (initialData) {
@@ -116,9 +119,8 @@ export const useSubscriptionForm = (
       )
     } else {
       const createdSub = addSubscriptionAndReturn(formData)
-      if (createdSub) {
+      if (createdSub)
         await scheduleSubscriptionReminder(createdSub, settingsPayload)
-      }
     }
 
     onSuccess()

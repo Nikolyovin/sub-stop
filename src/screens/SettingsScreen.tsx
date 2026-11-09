@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -7,13 +7,16 @@ import {
   ScrollView,
   Linking,
   Alert,
+  Platform,
 } from 'react-native'
 import Constants from 'expo-constants'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import { useTheme } from '../theme/ThemeContext'
 import { useSettingsStore } from '../store/useSettingsStore'
+import { useBiometricLock } from '../hooks/useBiometricLock'
 import { SettingsRow } from '../components/ui/SettingsRow'
 import { HeaderBackButton } from '../components/ui/HeaderBackButton'
-import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from '../theme'
+import { SPACING, TYPOGRAPHY, ThemeColors } from '../theme'
 import {
   sendTestNotification,
   requestNotificationPermissions,
@@ -25,8 +28,8 @@ interface SettingsScreenProps {
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   const { theme, toggleTheme, colors } = useTheme()
+  const [showTimePicker, setShowTimePicker] = useState(false)
 
-  // Достаем новые настройки из стора
   const {
     notificationsEnabled,
     toggleNotifications,
@@ -34,9 +37,22 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
     toggleNotifyTrials,
     notifyRegular,
     toggleNotifyRegular,
+    reminderHour,
+    reminderMinute,
+    setReminderTime,
   } = useSettingsStore()
 
+  const { isLockEnabled, isBiometricAvailable, toggleLock } = useBiometricLock()
+
   const styles = useMemo(() => createStyles(colors), [colors])
+
+  const reminderDate = new Date()
+  reminderDate.setHours(reminderHour, reminderMinute)
+
+  const onTimeChange = (event: any, date?: Date) => {
+    if (Platform.OS === 'android') setShowTimePicker(false)
+    if (date) setReminderTime(date.getHours(), date.getMinutes())
+  }
 
   const handleTestNotification = async () => {
     const hasPermission = await requestNotificationPermissions()
@@ -57,7 +73,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionTitle}>Основные</Text>
+        <Text style={styles.sectionTitle}>Уведомления</Text>
 
         <SettingsRow
           icon='notifications-outline'
@@ -66,7 +82,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
           onToggle={toggleNotifications}
         />
 
-        {/* Показываем поднастройки только если главный тумблер включен */}
         {notificationsEnabled && (
           <View style={styles.subSettingsContainer}>
             <SettingsRow
@@ -81,9 +96,43 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
               value={notifyTrials}
               onToggle={toggleNotifyTrials}
             />
+
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Text style={styles.timeLabel}>Время напоминаний</Text>
+              <Text style={styles.timeValue}>
+                {reminderHour.toString().padStart(2, '0')}:
+                {reminderMinute.toString().padStart(2, '0')}
+              </Text>
+            </TouchableOpacity>
+
+            {showTimePicker && (
+              <DateTimePicker
+                value={reminderDate}
+                mode='time'
+                display='default'
+                onValueChange={onTimeChange}
+                onDismiss={() => setShowTimePicker(false)}
+              />
+            )}
           </View>
         )}
 
+        {isBiometricAvailable && (
+          <>
+            <Text style={styles.sectionTitle}>Безопасность</Text>
+            <SettingsRow
+              icon='finger-print-outline'
+              title='Вход по биометрии'
+              value={isLockEnabled}
+              onToggle={() => toggleLock(!isLockEnabled)}
+            />
+          </>
+        )}
+
+        <Text style={styles.sectionTitle}>Основные</Text>
         <SettingsRow
           icon='moon-outline'
           title='Темная тема'
@@ -92,7 +141,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
         />
 
         <Text style={styles.sectionTitle}>Тестирование</Text>
-
         <TouchableOpacity
           style={styles.testBtn}
           onPress={handleTestNotification}
@@ -104,7 +152,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>О приложении</Text>
-
         <SettingsRow
           icon='shield-checkmark-outline'
           title='Политика конфиденциальности'
@@ -142,7 +189,6 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: SPACING.lg,
       marginBottom: SPACING.sm,
     },
-    // Стиль для вложенных настроек уведомлений
     subSettingsContainer: {
       paddingLeft: SPACING.sm,
       borderLeftWidth: 2,
@@ -150,17 +196,28 @@ const createStyles = (colors: ThemeColors) =>
       marginLeft: SPACING.sm,
       marginBottom: SPACING.sm,
     },
+    timeButton: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      padding: SPACING.md,
+      borderRadius: 16,
+      marginBottom: SPACING.sm,
+    },
+    timeLabel: { ...TYPOGRAPHY.body, color: colors.textMain },
+    timeValue: {
+      ...TYPOGRAPHY.body,
+      color: colors.primary,
+      fontWeight: 'bold',
+    },
     testBtn: {
       backgroundColor: `${colors.primary}15`,
       padding: SPACING.md,
       borderRadius: 16,
       alignItems: 'center',
     },
-    testBtnText: {
-      ...TYPOGRAPHY.button,
-      color: colors.primary,
-      fontSize: 16,
-    },
+    testBtnText: { ...TYPOGRAPHY.button, color: colors.primary, fontSize: 16 },
     versionText: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,

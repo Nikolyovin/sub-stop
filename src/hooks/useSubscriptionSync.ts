@@ -7,10 +7,13 @@ import { Subscription } from '../types'
 
 export const useSubscriptionSync = () => {
   const { subscriptions, updateSubscription } = useSubscriptionStore()
-
-  // Получаем новые настройки
-  const { notificationsEnabled, notifyTrials, notifyRegular } =
-    useSettingsStore()
+  const {
+    notificationsEnabled,
+    notifyTrials,
+    notifyRegular,
+    reminderHour,
+    reminderMinute,
+  } = useSettingsStore()
 
   useEffect(() => {
     const syncSubscriptions = async () => {
@@ -21,6 +24,8 @@ export const useSubscriptionSync = () => {
         enabled: notificationsEnabled,
         notifyTrials,
         notifyRegular,
+        hour: reminderHour,
+        minute: reminderMinute,
       }
 
       for (const sub of subscriptions) {
@@ -31,49 +36,38 @@ export const useSubscriptionSync = () => {
 
         while (currentDate <= today) {
           updated = true
-
           if (newStatus === 'trial') {
             newStatus = 'active'
-            if (sub.regularPrice !== undefined) {
-              newPrice = sub.regularPrice
-            }
+            if (sub.regularPrice !== undefined) newPrice = sub.regularPrice
           }
-
-          if (sub.billingCycle === 'monthly') {
+          if (sub.billingCycle === 'monthly')
             currentDate = addMonths(currentDate, 1)
-          } else {
-            currentDate = addYears(currentDate, 1)
-          }
+          else currentDate = addYears(currentDate, 1)
         }
 
         if (updated) {
           const newDateStr = format(currentDate, 'yyyy-MM-dd')
-
           const updates: Partial<Subscription> = {
             nextPaymentDate: newDateStr,
             status: newStatus,
             price: newPrice,
           }
-
           updateSubscription(sub.id, updates)
-
           const updatedSub: Subscription = {
             ...sub,
             ...updates,
           } as Subscription
-
           await scheduleSubscriptionReminder(updatedSub, settingsPayload)
-
-          console.log(
-            `Автопродление: ${sub.name} обновлена до ${newDateStr}. Новая цена: ${newPrice} ₽`,
-          )
         }
       }
     }
 
-    if (subscriptions.length > 0) {
-      syncSubscriptions()
-    }
-    // Добавили настройки в зависимости
-  }, [notificationsEnabled, notifyTrials, notifyRegular])
+    if (subscriptions.length > 0) syncSubscriptions()
+  }, [
+    notificationsEnabled,
+    notifyTrials,
+    notifyRegular,
+    reminderHour,
+    reminderMinute,
+  ])
 }

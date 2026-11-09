@@ -30,9 +30,7 @@ export const requestNotificationPermissions = async () => {
     finalStatus = status
   }
 
-  if (finalStatus !== 'granted') {
-    return false
-  }
+  if (finalStatus !== 'granted') return false
 
   if (Platform.OS === 'android') {
     try {
@@ -43,40 +41,37 @@ export const requestNotificationPermissions = async () => {
         lightColor: '#2563EB',
       })
     } catch (e) {
-      console.warn(
-        'Канал уведомлений не создан (это нормально для Expo Go):',
-        e,
-      )
+      console.warn('Канал уведомлений не создан:', e)
     }
   }
-
   return true
 }
 
 export const scheduleSubscriptionReminder = async (
   subscription: Subscription,
-  settings: { enabled: boolean; notifyTrials: boolean; notifyRegular: boolean },
+  settings: {
+    enabled: boolean
+    notifyTrials: boolean
+    notifyRegular: boolean
+    hour: number
+    minute: number
+  },
 ) => {
-  // 🚀 Если уведомления выключены полностью — выходим
   if (!settings.enabled) return
-
   const isTrial = subscription.status === 'trial'
-
-  // 🚀 Проверяем, разрешил ли пользователь такие уведомления
   if (isTrial && !settings.notifyTrials) return
   if (!isTrial && !settings.notifyRegular) return
 
   const paymentDate = new Date(subscription.nextPaymentDate)
 
-  // --- 1. ОСНОВНОЕ НАПОМИНАНИЕ (ВСЕГДА ЗА 1 ДЕНЬ В 10:00) ---
+  // 1. За 1 день утром (время из настроек)
   const reminderDate = new Date(paymentDate)
-  reminderDate.setDate(reminderDate.getDate() - 1) // За 1 день
-  reminderDate.setHours(10, 0, 0, 0) // 10 утра
+  reminderDate.setDate(reminderDate.getDate() - 1)
+  reminderDate.setHours(settings.hour, settings.minute, 0, 0)
 
   if (reminderDate.getTime() > Date.now()) {
     let title = ''
     let body = ''
-
     if (isTrial) {
       const nextPrice = subscription.regularPrice || subscription.price
       title = 'Заканчивается пробный период ⏳'
@@ -85,13 +80,8 @@ export const scheduleSubscriptionReminder = async (
       title = 'Скоро списание! 💸'
       body = `Завтра спишут ${subscription.price} ₽ за подписку «${subscription.name}».`
     }
-
     await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data: { subscriptionId: subscription.id },
-      },
+      content: { title, body, data: { subscriptionId: subscription.id } },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: reminderDate,
@@ -100,15 +90,15 @@ export const scheduleSubscriptionReminder = async (
     })
   }
 
-  // --- 2. ДОПОЛНИТЕЛЬНОЕ НАПОМИНАНИЕ ДЛЯ ТРИАЛА (ВЕЧЕРОМ НАКАНУНЕ) ---
+  // 2. Для триала вечером накануне (+6 часов от утреннего времени)
   if (isTrial) {
     const lastDayDate = new Date(paymentDate)
-    lastDayDate.setDate(lastDayDate.getDate() - 1) // Тот же день (за 1 день)
-    lastDayDate.setHours(18, 0, 0, 0) // Но в 18:00 вечера
+    lastDayDate.setDate(lastDayDate.getDate() - 1)
+    const eveningHour = (settings.hour + 6) % 24
+    lastDayDate.setHours(eveningHour, settings.minute, 0, 0)
 
     if (lastDayDate.getTime() > Date.now()) {
       const nextPrice = subscription.regularPrice || subscription.price
-
       await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Последний шанс отменить ⏳',
