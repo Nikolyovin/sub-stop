@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useDashboard } from "../hooks/useDashboard";
+import { usePremiumStore } from "../store/usePremiumStore";
 import { UndoSnackbar } from "../components/ui/UndoSnackbar";
 import { SwipeableCard } from "../components/ui/SwipeableCard";
 import {
@@ -44,6 +45,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isPremium } = usePremiumStore();
 
   const {
     subscriptions,
@@ -52,6 +54,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     totalWithTrials,
     totalYearly,
   } = useDashboard();
+
   const { addSubscriptionAndReturn } = useSubscriptionStore();
 
   const [lastDeleted, setLastDeleted] = useState<Subscription | null>(null);
@@ -71,12 +74,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     (id: string) => {
       const sub = subscriptions.find((s) => s.id === id);
       if (!sub) return;
+
       if (openCardId === id) setOpenCardId(null);
+
       const currentIndex = subscriptions.findIndex((s) => s.id === id);
       setLastDeletedIndex(currentIndex);
       setLastDeleted(sub);
       removeSubscription(id);
       setShowUndo(true);
+
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         setShowUndo(false);
@@ -121,7 +127,17 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle}>Мои подписки</Text>
+
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Мои подписки</Text>
+          {isPremium && (
+            <View style={styles.proBadge}>
+              <Ionicons name="star" size={10} color="#FFF" />
+              <Text style={styles.proText}>PRO</Text>
+            </View>
+          )}
+        </View>
+
         <View style={[styles.headerSide, { alignItems: "flex-end" }]}>
           <TouchableOpacity onPress={onAddPress} style={styles.iconBtnPrimary}>
             <Text style={styles.addButtonText}>+</Text>
@@ -144,8 +160,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             />
           </View>
         </View>
+
         <Text style={styles.totalAmount}>{totalMonthly} ₽</Text>
         <Text style={styles.totalYearly}>Это {totalYearly} ₽ в год</Text>
+
         {totalWithTrials > totalMonthly && (
           <View style={{ width: "100%" }}>
             <View style={styles.trialDivider} />
@@ -203,13 +221,36 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.md,
     },
     headerSide: { width: 44, justifyContent: "center" },
-    headerTitle: {
+
+    headerTitleContainer: {
       flex: 1,
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 6,
+    },
+    headerTitle: {
       textAlign: "center",
       ...TYPOGRAPHY.title,
       color: colors.textMain,
       fontSize: 22,
     },
+    proBadge: {
+      backgroundColor: "#F59E0B",
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      gap: 2,
+      marginTop: 2,
+    },
+    proText: {
+      color: "#FFF",
+      fontSize: 10,
+      fontWeight: "bold",
+    },
+
     iconBtn: {
       width: 44,
       height: 44,

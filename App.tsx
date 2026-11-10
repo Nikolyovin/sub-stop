@@ -11,6 +11,7 @@ import { SubscriptionDetailsScreen } from "./src/screens/SubscriptionDetailsScre
 import { SubscriptionFormScreen } from "./src/screens/SubscriptionFormScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { StatisticsScreen } from "./src/screens/StatisticsScreen";
+import { PremiumScreen } from "./src/screens/PremiumScreen";
 import { LockScreen } from "./src/components/LockScreen";
 
 import { ThemeProvider } from "./src/theme/ThemeContext";
@@ -18,7 +19,13 @@ import { useSubscriptionStore } from "./src/store/useSubscriptionStore";
 import { useSubscriptionSync } from "./src/hooks/useSubscriptionSync";
 import { useBiometricLock } from "./src/hooks/useBiometricLock";
 
-type ScreenState = "main" | "form" | "details" | "settings" | "statistics";
+type ScreenState =
+  | "main"
+  | "form"
+  | "details"
+  | "settings"
+  | "statistics"
+  | "premium";
 
 const AppContent = () => {
   const [screen, setScreen] = useState<ScreenState>("main");
@@ -69,11 +76,18 @@ const AppContent = () => {
       )}
 
       {screen === "settings" && (
-        <SettingsScreen onBack={() => setScreen("main")} />
+        <SettingsScreen
+          onBack={() => setScreen("main")}
+          onOpenPremium={() => setScreen("premium")}
+        />
       )}
 
       {screen === "statistics" && (
         <StatisticsScreen onBack={() => setScreen("main")} />
+      )}
+
+      {screen === "premium" && (
+        <PremiumScreen onBack={() => setScreen("settings")} />
       )}
     </>
   );
@@ -83,7 +97,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // 🚀 Деструктурируем isAuthenticating
   const { isLockEnabled, isUnlocked, isAuthenticating, authenticate } =
     useBiometricLock();
 
@@ -123,7 +136,6 @@ export default function App() {
           <StatusBar style="auto" />
 
           {isLockEnabled && !isUnlocked ? (
-            /* 🚀 Передаем isAuthenticating в LockScreen */
             <LockScreen
               onUnlock={authenticate}
               isAuthenticating={isAuthenticating}

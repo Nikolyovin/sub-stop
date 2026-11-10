@@ -14,15 +14,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme/ThemeContext";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useBiometricLock } from "../hooks/useBiometricLock";
+import { usePremiumStore } from "../store/usePremiumStore";
 import { SettingsRow } from "../components/ui/SettingsRow";
 import { HeaderBackButton } from "../components/ui/HeaderBackButton";
 import { SPACING, TYPOGRAPHY, ThemeColors } from "../theme";
 
 interface SettingsScreenProps {
   onBack: () => void;
+  onOpenPremium: () => void;
 }
 
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({
+  onBack,
+  onOpenPremium,
+}) => {
   const { theme, toggleTheme, colors } = useTheme();
   const [showTimePicker, setShowTimePicker] = useState(false);
 
@@ -44,10 +49,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
     isCheckingHardware,
   } = useBiometricLock();
 
+  const { isPremium } = usePremiumStore();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const isAnyNotificationEnabled = notifyTrials || notifyRegular;
-
   const reminderDate = new Date();
   reminderDate.setHours(reminderHour, reminderMinute);
 
@@ -64,7 +69,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { flexGrow: 1 }]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+      >
         <Text style={styles.sectionTitle}>Уведомления</Text>
 
         <SettingsRow
@@ -149,6 +159,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
           onToggle={toggleTheme}
         />
 
+        <Text style={styles.sectionTitle}>Поддержка</Text>
+        {/* 🚀 Передаем золотой цвет иконки, если Премиум активен */}
+        <SettingsRow
+          icon={isPremium ? "star" : "star-outline"}
+          title={isPremium ? "Премиум активен" : "Премиум-версия"}
+          iconColor={isPremium ? "#F59E0B" : undefined}
+          onPress={onOpenPremium}
+        />
+
         <Text style={styles.sectionTitle}>О приложении</Text>
         <SettingsRow
           icon="shield-checkmark-outline"
@@ -166,6 +185,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   );
 };
 
+// ... (стили createStyles остаются точно такими же, как в прошлом сообщении)
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
@@ -175,7 +195,7 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
       paddingHorizontal: SPACING.lg,
       height: 56,
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm,
     },
     headerTitle: {
       flex: 1,
@@ -185,16 +205,15 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 22,
     },
     placeholder: { width: 44 },
-    content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
+    content: { paddingHorizontal: SPACING.lg },
     sectionTitle: {
       ...TYPOGRAPHY.subtitle,
       color: colors.textSecondary,
       fontSize: 14,
       textTransform: "uppercase",
-      marginTop: SPACING.lg,
-      marginBottom: SPACING.sm,
+      marginTop: SPACING.md,
+      marginBottom: SPACING.xs,
     },
-
     timeButton: {
       flexDirection: "row",
       alignItems: "center",
@@ -202,8 +221,8 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.card,
       paddingHorizontal: SPACING.md,
       borderRadius: 16,
-      marginBottom: SPACING.sm,
-      height: 56, // 🚀 ТА ЖЕ ЖЕСТКАЯ ВЫСОТА
+      marginBottom: 6,
+      height: 56,
     },
     left: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
     timeLabel: { ...TYPOGRAPHY.body, color: colors.textMain, fontSize: 15 },
@@ -217,6 +236,7 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
       textAlign: "center",
-      marginTop: SPACING.xl,
+      marginTop: SPACING.md,
+      marginBottom: SPACING.md,
     },
   });

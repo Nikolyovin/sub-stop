@@ -57,59 +57,37 @@ export const scheduleSubscriptionReminder = async (
   },
 ) => {
   const isTrial = subscription.status === "trial";
-  // Проверяем только конкретные настройки
   if (isTrial && !settings.notifyTrials) return;
   if (!isTrial && !settings.notifyRegular) return;
 
   const paymentDate = new Date(subscription.nextPaymentDate);
 
-  // 1. За 1 день утром (время из настроек)
+  // За 1 день до списания, в то время, которое выбрал пользователь
   const reminderDate = new Date(paymentDate);
   reminderDate.setDate(reminderDate.getDate() - 1);
   reminderDate.setHours(settings.hour, settings.minute, 0, 0);
 
-  if (reminderDate.getTime() > Date.now()) {
-    let title = "";
-    let body = "";
-    if (isTrial) {
-      const nextPrice = subscription.regularPrice || subscription.price;
-      title = "Заканчивается пробный период ⏳";
-      body = `Завтра закончится промо-период на «${subscription.name}». Далее спишут ${nextPrice} ₽.`;
-    } else {
-      title = "Скоро списание! 💸";
-      body = `Завтра спишут ${subscription.price} ₽ за подписку «${subscription.name}».`;
-    }
-    await Notifications.scheduleNotificationAsync({
-      content: { title, body, data: { subscriptionId: subscription.id } },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: reminderDate,
-        channelId: "subscriptions",
-      },
-    });
-  }
+  // Если время уже прошло — ничего не планируем
+  if (reminderDate.getTime() <= Date.now()) return;
 
-  // 2. Для триала вечером накануне (+6 часов от утреннего времени)
+  let title = "";
+  let body = "";
+
   if (isTrial) {
-    const lastDayDate = new Date(paymentDate);
-    lastDayDate.setDate(lastDayDate.getDate() - 1);
-    const eveningHour = (settings.hour + 6) % 24;
-    lastDayDate.setHours(eveningHour, settings.minute, 0, 0);
-
-    if (lastDayDate.getTime() > Date.now()) {
-      const nextPrice = subscription.regularPrice || subscription.price;
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Последний шанс отменить ⏳",
-          body: `Завтра с «${subscription.name}» спишут ${nextPrice} ₽. Если подписка не нужна, отмените её сегодня.`,
-          data: { subscriptionId: subscription.id },
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: lastDayDate,
-          channelId: "subscriptions",
-        },
-      });
-    }
+    const nextPrice = subscription.regularPrice || subscription.price;
+    title = "Заканчивается пробный период ⏳";
+    body = `Завтра закончится промо-период на «${subscription.name}». Далее спишут ${nextPrice} ₽.`;
+  } else {
+    title = "Скоро списание! 💸";
+    body = `Завтра спишут ${subscription.price} ₽ за подписку «${subscription.name}».`;
   }
+
+  await Notifications.scheduleNotificationAsync({
+    content: { title, body, data: { subscriptionId: subscription.id } },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: reminderDate,
+      channelId: "subscriptions",
+    },
+  });
 };

@@ -19,6 +19,7 @@ interface SettingsRowProps {
   onPress?: () => void;
   disabled?: boolean;
   isLoading?: boolean;
+  iconColor?: string; // 🚀 Добавили пропс для цвета иконки
 }
 
 export const SettingsRow: React.FC<SettingsRowProps> = ({
@@ -29,6 +30,7 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
   onPress,
   disabled = false,
   isLoading = false,
+  iconColor,
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -39,7 +41,7 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
         <Ionicons
           name={icon}
           size={20}
-          color={disabled ? colors.textSecondary : colors.primary}
+          color={disabled ? colors.textSecondary : iconColor || colors.primary}
         />
         <Text
           style={[styles.title, disabled && { color: colors.textSecondary }]}
@@ -99,8 +101,8 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.card,
       paddingHorizontal: SPACING.md,
       borderRadius: 16,
-      marginBottom: SPACING.sm,
-      height: 56, // 🚀 ЖЕСТКО ЗАДАЕМ ВЫСОТУ
+      marginBottom: 6,
+      height: 56,
     },
     left: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
     title: { ...TYPOGRAPHY.body, color: colors.textMain, fontSize: 15 },
