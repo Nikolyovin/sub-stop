@@ -19,6 +19,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSubscriptionDetails } from "../hooks/useSubscriptionDetails";
+import { formatPrice } from "../utils/formatUtils"; // 🚀 Импорт
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 import { Subscription } from "../types";
@@ -103,7 +104,7 @@ export const SubscriptionDetailsScreen: React.FC<
             ? "завтра"
             : `через ${daysLeft} дн.`;
       const priceText = subscription.regularPrice
-        ? ` Далее спишут ${subscription.regularPrice} ₽.`
+        ? ` Далее спишут ${formatPrice(subscription.regularPrice)}.`
         : "";
       Alert.alert(
         "Триал скоро закончится ⏳",
@@ -220,19 +221,35 @@ export const SubscriptionDetailsScreen: React.FC<
             <Text style={styles.statLabel}>
               {isTrial ? "Сейчас" : "В месяц"}
             </Text>
-            <Text style={styles.statValue}>{costs.monthly} ₽</Text>
+            <Text
+              style={styles.statValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+            >
+              {formatPrice(costs.monthly)}
+            </Text>
           </View>
           {isTrial && costs.futureMonthly > costs.monthly ? (
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>После триала</Text>
-              <Text style={[styles.statValue, { color: colors.danger }]}>
-                {costs.futureMonthly} ₽
+              <Text
+                style={[styles.statValue, { color: colors.danger }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+              >
+                {formatPrice(costs.futureMonthly)}
               </Text>
             </View>
           ) : (
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>В год</Text>
-              <Text style={styles.statValue}>{costs.yearly} ₽</Text>
+              <Text
+                style={styles.statValue}
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+              >
+                {formatPrice(costs.yearly)}
+              </Text>
             </View>
           )}
         </View>

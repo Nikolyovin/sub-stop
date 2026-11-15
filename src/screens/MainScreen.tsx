@@ -17,6 +17,7 @@ import { useDashboard } from "../hooks/useDashboard";
 import { usePremiumStore } from "../store/usePremiumStore";
 import { UndoSnackbar } from "../components/ui/UndoSnackbar";
 import { SwipeableCard } from "../components/ui/SwipeableCard";
+import { formatPrice } from "../utils/formatUtils"; // 🚀 Импорт форматтера
 import {
   SPACING,
   TYPOGRAPHY,
@@ -161,14 +162,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           </View>
         </View>
 
-        <Text style={styles.totalAmount}>{totalMonthly} ₽</Text>
-        <Text style={styles.totalYearly}>Это {totalYearly} ₽ в год</Text>
+        <Text
+          style={styles.totalAmount}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true} // 🚀 Уменьшает шрифт, если не влезает
+        >
+          {formatPrice(totalMonthly)}
+        </Text>
+
+        <Text style={styles.totalYearly} numberOfLines={2}>
+          Это {formatPrice(totalYearly)} в год
+        </Text>
 
         {totalWithTrials > totalMonthly && (
           <View style={{ width: "100%" }}>
             <View style={styles.trialDivider} />
-            <Text style={styles.trialHint}>
-              С учетом оплаты после триалов: {totalWithTrials} ₽/мес
+            <Text style={styles.trialHint} numberOfLines={2}>
+              С учетом оплаты после триалов: {formatPrice(totalWithTrials)}/мес
             </Text>
           </View>
         )}

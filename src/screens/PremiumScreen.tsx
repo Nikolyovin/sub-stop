@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,8 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  AppState,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
 import { usePremiumStore } from "../store/usePremiumStore";
 import { HeaderBackButton } from "../components/ui/HeaderBackButton";
 import {
@@ -19,6 +24,8 @@ import {
 } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 
+const API_URL = "https://sub-stop-server-nikolyovin.msk1.amvera.tech";
+
 interface PremiumScreenProps {
   onBack: () => void;
 }
@@ -26,25 +33,67 @@ interface PremiumScreenProps {
 export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { isPremium, setPremium } = usePremiumStore();
+  const { isPremium, setPremium, getDeviceId, checkPremiumStatus } =
+    usePremiumStore();
 
-  const handleBuy = () => {
-    Alert.alert(
-      "Тестовая покупка",
-      "В будущем здесь откроется форма оплаты Robokassa. Пока что мы просто включим Премиум для теста.",
-      [
-        { text: "Отмена", style: "cancel" },
-        {
-          text: "Включить",
-          onPress: () => {
-            setPremium(true);
-            Alert.alert("Успех", "Премиум активирован! Реклама отключена.");
-          },
-        },
-      ],
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 🚀 Проверяем статус при возвращении в приложение после оплаты
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      "change",
+      async (nextAppState) => {
+        if (nextAppState === "active" && !isPremium) {
+          await checkPremiumStatus();
+        }
+      },
     );
+    return () => subscription.remove();
+  }, [isPremium, checkPremiumStatus]);
+
+  const handleStartPayment = async () => {
+    if (!email.includes("@") || email.length < 5) {
+      Alert.alert("Ошибка", "Пожалуйста, введите корректный Email");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const deviceId = getDeviceId();
+
+      const response = await fetch(`${API_URL}/api/create-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          device_id: deviceId,
+          email: email,
+          is_test: true, // 🚀 ВКЛЮЧЕНО ДЛЯ ТЕСТА
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        setShowEmailModal(false);
+        await WebBrowser.openBrowserAsync(data.url);
+        await checkPremiumStatus();
+      } else {
+        Alert.alert("Ошибка", "Сервер не вернул ссылку на оплату");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert(
+        "Ошибка",
+        "Не удалось связаться с сервером. Проверьте интернет.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  // Для тестов: сброс премиума
   const handleResetPremium = () => {
     Alert.alert(
       "Сброс Премиума",
@@ -85,7 +134,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
             Поддержите разработку и получите максимум возможностей.
           </Text>
           <View style={styles.priceBadge}>
-            <Text style={styles.priceText}>149 ₽</Text>
+            <Text style={styles.priceText}>199 ₽</Text>
             <Text style={styles.priceSubtext}>разово, навсегда</Text>
           </View>
         </View>
@@ -213,7 +262,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
           </View>
         </View>
 
-        {/* 🚀 Кнопка сброса для теста (видна только если премиум активен) */}
         {isPremium && (
           <TouchableOpacity
             style={styles.resetBtn}
@@ -228,17 +276,70 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
       <View style={styles.bottomActions}>
         <TouchableOpacity
           style={[styles.buyBtn, isPremium && styles.buyBtnActive]}
-          onPress={isPremium ? undefined : handleBuy}
+          onPress={() => !isPremium && setShowEmailModal(true)}
           disabled={isPremium}
         >
           <Text style={styles.buyBtnText}>
-            {isPremium ? "Премиум активирован" : "Купить за 149 ₽"}
+            {isPremium ? "Премиум активирован" : "Купить за 199 ₽"}
           </Text>
         </TouchableOpacity>
         <Text style={styles.footerText}>
           Единоразовый платеж. Без скрытых списаний.
         </Text>
       </View>
+
+      {/* 🚀 Модалка ввода Email */}
+      {/* 🚀 Модалка ввода Email */}
+      <Modal visible={showEmailModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* 🚀 Новый заголовок */}
+            <Text style={styles.modalTitle}>Завершение покупки</Text>
+
+            {/* 🚀 Новое описание */}
+            <Text style={styles.modalDesc}>
+              Укажите свой Email. Он нужен для привязки покупки к вам и
+              восстановления доступа, если вы смените телефон. Никакого спама.
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="example@mail.com"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: colors.border }]}
+                onPress={() => setShowEmailModal(false)}
+                disabled={isLoading}
+              >
+                <Text style={{ color: colors.textMain, fontWeight: "bold" }}>
+                  Отмена
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                onPress={handleStartPayment}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                    Оплатить
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -367,7 +468,6 @@ const createStyles = (colors: ThemeColors) =>
       textTransform: "uppercase",
     },
 
-    // 🚀 Стили для кнопки сброса
     resetBtn: {
       flexDirection: "row",
       alignItems: "center",
@@ -405,5 +505,50 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
       textAlign: "center",
+    },
+
+    // Стили модалки
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
+      padding: SPACING.lg,
+    },
+    modalContent: {
+      backgroundColor: colors.card,
+      borderRadius: BORDER_RADIUS.xl,
+      padding: SPACING.lg,
+    },
+    modalTitle: {
+      ...TYPOGRAPHY.title,
+      color: colors.textMain,
+      fontSize: 20,
+      marginBottom: SPACING.xs,
+      textAlign: "center",
+    },
+    modalDesc: {
+      ...TYPOGRAPHY.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginBottom: SPACING.md,
+      fontSize: 14,
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderRadius: BORDER_RADIUS.md,
+      padding: SPACING.md,
+      fontSize: 16,
+      color: colors.textMain,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: SPACING.lg,
+    },
+    modalActions: { flexDirection: "row", gap: SPACING.md },
+    modalBtn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: BORDER_RADIUS.round,
+      alignItems: "center",
+      justifyContent: "center",
     },
   });

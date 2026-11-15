@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nikolyovin.substop"
@@ -21,7 +23,10 @@
       }
     },
     "plugins": [
-      ["./plugins/withDisableForcedDarkModeAndroid.js", {}],
+      [
+        "./plugins/withDisableForcedDarkModeAndroid.js",
+        {}
+      ],
       [
         "expo-notifications",
         {
@@ -38,7 +43,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#0F172A"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

@@ -1,39 +1,29 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSecurityStore } from "../store/useSecurityStore";
 
-const LOCK_KEY = "@sub_stop_biometric_lock";
 const GRACE_PERIOD_MS = 30000;
 
 export const useBiometricLock = () => {
-  const [isLockEnabled, setIsLockEnabled] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(true);
+  // 🚀 Берем состояние из глобального стора
+  const { isLockEnabled, isUnlocked, setLockEnabled, setUnlocked } =
+    useSecurityStore();
+
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isLockLoading, setIsLockLoading] = useState(true);
   const [isCheckingHardware, setIsCheckingHardware] = useState(true);
 
   const backgroundTimestamp = useRef<number | null>(null);
 
   useEffect(() => {
-    const init = async () => {
+    const checkAvailability = async () => {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       setIsBiometricAvailable(hasHardware && isEnrolled);
       setIsCheckingHardware(false);
-
-      const value = await AsyncStorage.getItem(LOCK_KEY);
-      if (value === "true") {
-        setIsLockEnabled(true);
-        setIsUnlocked(false);
-      } else {
-        setIsLockEnabled(false);
-        setIsUnlocked(true);
-      }
-      setIsLockLoading(false);
     };
-    init();
+    checkAvailability();
   }, []);
 
   useEffect(() => {
@@ -47,7 +37,7 @@ export const useBiometricLock = () => {
             if (backgroundTimestamp.current) {
               const timeAway = Date.now() - backgroundTimestamp.current;
               if (timeAway > GRACE_PERIOD_MS) {
-                setIsUnlocked(false);
+                setUnlocked(false); // Блокируем глобально
               }
               backgroundTimestamp.current = null;
             }
@@ -56,7 +46,7 @@ export const useBiometricLock = () => {
       },
     );
     return () => subscription.remove();
-  }, [isLockEnabled]);
+  }, [isLockEnabled, setUnlocked]);
 
   const authenticate = useCallback(async () => {
     if (!isLockEnabled || isAuthenticating) return true;
@@ -70,7 +60,7 @@ export const useBiometricLock = () => {
         fallbackLabel: "Использовать пароль",
       });
       if (result.success) {
-        setIsUnlocked(true);
+        setUnlocked(true); // Разблокируем глобально
         return true;
       }
       return false;
@@ -79,26 +69,26 @@ export const useBiometricLock = () => {
     } finally {
       setIsAuthenticating(false);
     }
-  }, [isLockEnabled, isAuthenticating]);
+  }, [isLockEnabled, isAuthenticating, setUnlocked]);
 
-  const toggleLock = useCallback(async (enabled: boolean) => {
-    if (enabled) {
-      const success = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Подтвердите для включения защиты",
-      });
-      if (!success.success) return;
-    }
-    setIsLockEnabled(enabled);
-    setIsUnlocked(!enabled);
-    await AsyncStorage.setItem(LOCK_KEY, String(enabled));
-  }, []);
+  const toggleLock = useCallback(
+    async (enabled: boolean) => {
+      if (enabled) {
+        const success = await LocalAuthentication.authenticateAsync({
+          promptMessage: "Подтвердите для включения защиты",
+        });
+        if (!success.success) return;
+      }
+      setLockEnabled(enabled); // Обновляем глобально
+    },
+    [setLockEnabled],
+  );
 
   return {
     isLockEnabled,
     isUnlocked,
     isBiometricAvailable,
     isAuthenticating,
-    isLockLoading,
     isCheckingHardware,
     authenticate,
     toggleLock,

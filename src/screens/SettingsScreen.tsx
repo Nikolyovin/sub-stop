@@ -13,6 +13,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme/ThemeContext";
 import { useSettingsStore } from "../store/useSettingsStore";
+import { useSecurityStore } from "../store/useSecurityStore"; // 🚀 Импорт стора безопасности
 import { useBiometricLock } from "../hooks/useBiometricLock";
 import { usePremiumStore } from "../store/usePremiumStore";
 import { SettingsRow } from "../components/ui/SettingsRow";
@@ -41,18 +42,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setReminderTime,
   } = useSettingsStore();
 
-  const {
-    isLockEnabled,
-    isBiometricAvailable,
-    toggleLock,
-    isLockLoading,
-    isCheckingHardware,
-  } = useBiometricLock();
+  // 🚀 Берем isLockEnabled из глобального стора
+  const { isLockEnabled } = useSecurityStore();
+
+  // 🚀 Берем остальное из хука
+  const { isBiometricAvailable, toggleLock, isCheckingHardware } =
+    useBiometricLock();
 
   const { isPremium } = usePremiumStore();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const isAnyNotificationEnabled = notifyTrials || notifyRegular;
+
   const reminderDate = new Date();
   reminderDate.setHours(reminderHour, reminderMinute);
 
@@ -146,7 +147,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               title="Вход по биометрии"
               value={isLockEnabled}
               onToggle={() => toggleLock(!isLockEnabled)}
-              isLoading={isCheckingHardware || isLockLoading}
+              isLoading={isCheckingHardware}
             />
           </>
         )}
@@ -160,7 +161,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         />
 
         <Text style={styles.sectionTitle}>Поддержка</Text>
-        {/* 🚀 Передаем золотой цвет иконки, если Премиум активен */}
         <SettingsRow
           icon={isPremium ? "star" : "star-outline"}
           title={isPremium ? "Премиум активен" : "Премиум-версия"}
@@ -185,7 +185,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   );
 };
 
-// ... (стили createStyles остаются точно такими же, как в прошлом сообщении)
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
@@ -205,7 +204,9 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 22,
     },
     placeholder: { width: 44 },
-    content: { paddingHorizontal: SPACING.lg },
+    content: {
+      paddingHorizontal: SPACING.lg,
+    },
     sectionTitle: {
       ...TYPOGRAPHY.subtitle,
       color: colors.textSecondary,

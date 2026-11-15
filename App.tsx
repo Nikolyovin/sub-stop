@@ -18,6 +18,7 @@ import { ThemeProvider } from "./src/theme/ThemeContext";
 import { useSubscriptionStore } from "./src/store/useSubscriptionStore";
 import { useSubscriptionSync } from "./src/hooks/useSubscriptionSync";
 import { useBiometricLock } from "./src/hooks/useBiometricLock";
+import { useSecurityStore } from "./src/store/useSecurityStore"; // 🚀 Импорт нового стора
 
 type ScreenState =
   | "main"
@@ -97,8 +98,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  const { isLockEnabled, isUnlocked, isAuthenticating, authenticate } =
-    useBiometricLock();
+  // 🚀 Берем статус блокировки из глобального стора
+  const { isLockEnabled, isUnlocked } = useSecurityStore();
+  // 🚀 Берем методы аутентификации из хука
+  const { isAuthenticating, authenticate } = useBiometricLock();
 
   useEffect(() => {
     const checkOnboarding = async () => {

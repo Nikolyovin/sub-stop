@@ -13,6 +13,7 @@ import { ru } from "date-fns/locale";
 import { Subscription } from "../types";
 import { getBrandData, getBrandBackground } from "../utils/brandUtils";
 import { BrandIcon } from "./ui/BrandIcon";
+import { formatPrice } from "../utils/formatUtils"; // 🚀 Импорт
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 
@@ -43,7 +44,6 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       ? subscription.regularPrice
       : subscription.price;
 
-  // Форматируем дату (например, "7 декабря")
   const formattedDate = useMemo(() => {
     return format(new Date(subscription.nextPaymentDate), "d MMMM", {
       locale: ru,
@@ -81,8 +81,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
 
       const priceText =
         isTrial && subscription.regularPrice
-          ? ` Далее спишут ${subscription.regularPrice} ₽.`
-          : ` Спишут ${displayPrice} ₽.`;
+          ? ` Далее спишут ${formatPrice(subscription.regularPrice)}.`
+          : ` Спишут ${formatPrice(displayPrice)}.`;
 
       Alert.alert(
         isTrial ? "Триал скоро закончится ⏳" : "Скоро списание! 💸",
@@ -92,7 +92,6 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     }
   };
 
-  // Настройки для нижней плашки (показывается только если <= 3 дней)
   const urgentBadge = isEndingSoon
     ? {
         text: isTrial
@@ -123,7 +122,6 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             {subscription.name}
           </Text>
 
-          {/* Маленькая плашка TRIAL, если время еще есть */}
           {isTrial && !isEndingSoon && (
             <View style={[styles.badge, { backgroundColor: "#F59E0B" }]}>
               <Text style={styles.badgeText}>TRIAL</Text>
@@ -136,7 +134,6 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             {isTrial ? "Конец триала:" : "Списание:"}
           </Text>
 
-          {/* 🚀 УМНАЯ ЛОГИКА: Либо пишем красивую дату, либо показываем плашку с днями */}
           {!urgentBadge ? (
             <Text style={styles.date}>{formattedDate}</Text>
           ) : (
@@ -155,15 +152,19 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       </View>
 
       <View style={styles.rightSide}>
-        <Text style={styles.price}>
-          {displayPrice === 0 ? "Бесплатно" : `${displayPrice} ₽`}
+        <Text
+          style={styles.price}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+        >
+          {displayPrice === 0 ? "Бесплатно" : formatPrice(displayPrice)}
           {subscription.billingCycle === "yearly" && (
             <Text style={styles.cycleText}>/год</Text>
           )}
         </Text>
         {isTrial && subscription.regularPrice && (
-          <Text style={styles.regularPriceText}>
-            Далее: {subscription.regularPrice} ₽
+          <Text style={styles.regularPriceText} numberOfLines={1}>
+            Далее: {formatPrice(subscription.regularPrice)}
           </Text>
         )}
       </View>

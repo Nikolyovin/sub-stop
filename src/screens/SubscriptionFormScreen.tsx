@@ -115,7 +115,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
 
   // 🚀 Фильтруем ввод: только цифры
   const handlePriceChange = (text: string, setter: (val: string) => void) => {
-    const cleaned = text.replace(/[^0-9]/g, "");
+    const cleaned = text.replace(/[^0-9]/g, "").slice(0, 7);
     setter(cleaned);
   };
 

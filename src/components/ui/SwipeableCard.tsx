@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { View, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import * as Haptics from "expo-haptics"; // 🚀 Импорт вибрации
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -37,7 +38,6 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   const translateX = useSharedValue(0);
   const isOpen = useSharedValue(false);
 
-  // 🚀 Используем withTiming для четкого возврата без перелетов
   const close = () => {
     "worklet";
     translateX.value = withTiming(0, { duration: 250 });
@@ -50,6 +50,8 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
     translateX.value = withTiming(-BUTTON_WIDTH, { duration: 250 });
     isOpen.value = true;
     runOnJS(onOpenCard)(item.id);
+    // 🚀 Легкая вибрация при открытии
+    runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
   };
 
   useEffect(() => {
@@ -78,7 +80,6 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
         if (event.translationX > 20) {
           close();
         } else {
-          // Возвращаем в открытое положение, если дернули слабо
           translateX.value = withTiming(-BUTTON_WIDTH, { duration: 200 });
         }
       } else {
@@ -113,7 +114,9 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   });
 
   const handleDeletePress = () => {
-    // Анимация удаления влево
+    // 🚀 Жесткая вибрация при удалении
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+
     translateX.value = withTiming(-width, { duration: 250 }, (finished) => {
       if (finished) {
         runOnJS(onDelete)(item.id);

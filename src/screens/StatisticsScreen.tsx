@@ -1,59 +1,78 @@
-import React, { useMemo } from 'react'
+import React, { useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-} from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import Svg, { Circle } from 'react-native-svg'
-import { useStatistics } from '../hooks/useStatistics'
-import { CategoryProgressBar } from '../components/ui/CategoryProgressBar'
+  Share,
+} from "react-native"; // 🚀 Добавлен Share
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics"; // 🚀 Импорт вибрации
+import Svg, { Circle } from "react-native-svg";
+import { useStatistics } from "../hooks/useStatistics";
+import { CategoryProgressBar } from "../components/ui/CategoryProgressBar";
+import { formatPrice } from "../utils/formatUtils"; // 🚀 Импорт форматтера
 import {
   SPACING,
   TYPOGRAPHY,
   BORDER_RADIUS,
   SHADOWS,
   ThemeColors,
-} from '../theme'
-import { useTheme } from '../theme/ThemeContext'
+} from "../theme";
+import { useTheme } from "../theme/ThemeContext";
 
 interface StatisticsScreenProps {
-  onBack: () => void
+  onBack: () => void;
 }
 
 export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
   onBack,
 }) => {
-  const { colors } = useTheme()
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { totalMonthly, futureTotalMonthly, difference, result } =
-    useStatistics()
+    useStatistics();
+  const totalYearly = totalMonthly * 12; // Считаем сумму в год
 
-  const size = 180
-  const strokeWidth = 24
-  const radius = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * radius
+  const size = 180;
+  const strokeWidth = 24;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
 
-  let currentOffset = 0
+  let currentOffset = 0;
+
+  // 🚀 Функция шеринга
+  const onShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await Share.share({
+        message: `Я отслеживаю подписки в приложении «Стоп-Подписка».\n\nУзнал, что трачу ${formatPrice(totalMonthly)} в месяц (${formatPrice(totalYearly)} в год). А ты?`,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Ionicons name='arrow-back' size={24} color={colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Статистика</Text>
-        <View style={styles.placeholder} />
+        {/* 🚀 Кнопка Поделиться */}
+        <TouchableOpacity onPress={onShare} style={styles.shareBtn}>
+          <Ionicons name="share-outline" size={24} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         bounces={false}
-        overScrollMode='never'
+        overScrollMode="never"
       >
         <View style={styles.chartCard}>
           <View style={styles.chartContainer}>
@@ -64,12 +83,12 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
                 r={radius}
                 stroke={colors.border}
                 strokeWidth={strokeWidth}
-                fill='none'
+                fill="none"
               />
               {result.map((stat) => {
-                const strokeDashoffset = -currentOffset
-                const segmentLength = (stat.percentage / 100) * circumference
-                currentOffset += segmentLength
+                const strokeDashoffset = -currentOffset;
+                const segmentLength = (stat.percentage / 100) * circumference;
+                currentOffset += segmentLength;
                 return (
                   <Circle
                     key={stat.category}
@@ -78,17 +97,20 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
                     r={radius}
                     stroke={stat.color}
                     strokeWidth={strokeWidth}
-                    fill='none'
+                    fill="none"
                     strokeDasharray={`${segmentLength} ${circumference}`}
                     strokeDashoffset={strokeDashoffset}
-                    strokeLinecap='butt'
+                    strokeLinecap="butt"
                   />
-                )
+                );
               })}
             </Svg>
             <View style={styles.chartCenter}>
               <Text style={styles.chartLabel}>В месяц</Text>
-              <Text style={styles.chartAmount}>{totalMonthly} ₽</Text>
+              {/* 🚀 Форматирование */}
+              <Text style={styles.chartAmount}>
+                {formatPrice(totalMonthly)}
+              </Text>
             </View>
           </View>
         </View>
@@ -96,18 +118,18 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
         {difference > 0 && (
           <View style={styles.warningCard}>
             <View style={styles.warningHeader}>
-              <Ionicons name='warning-outline' size={22} color='#D97706' />
+              <Ionicons name="warning-outline" size={22} color="#D97706" />
               <Text style={styles.warningTitle}>Внимание: Триалы</Text>
             </View>
             <Text style={styles.warningText}>
-              Если вы не отмените пробные периоды, ваши расходы вырастут до{' '}
-              <Text style={styles.boldText}>{futureTotalMonthly} ₽/мес</Text>{' '}
-              <Text style={styles.plusText}>(+{difference} ₽)</Text>
+              Если вы не отмените пробные периоды, ваши расходы вырастут до{" "}
+              <Text style={styles.boldText}>
+                {formatPrice(futureTotalMonthly)}/мес
+              </Text>{" "}
+              <Text style={styles.plusText}>(+{formatPrice(difference)})</Text>
             </Text>
           </View>
         )}
-
-        {/* 🚀 Убрали заголовок "По категориям" */}
 
         {result.length === 0 ? (
           <View style={styles.emptyState}>
@@ -131,29 +153,29 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
         )}
       </ScrollView>
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
       height: 56,
       marginBottom: SPACING.md,
     },
-    backBtn: { width: 44, justifyContent: 'center' },
+    backBtn: { width: 44, justifyContent: "center" },
+    shareBtn: { width: 44, justifyContent: "center", alignItems: "flex-end" }, // 🚀 Стиль для кнопки шеринга
     headerTitle: {
       flex: 1,
-      textAlign: 'center',
+      textAlign: "center",
       ...TYPOGRAPHY.title,
       color: colors.textMain,
       fontSize: 22,
     },
-    placeholder: { width: 44 },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
 
     chartCard: {
@@ -162,20 +184,20 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: SPACING.xl,
       paddingHorizontal: SPACING.lg,
       marginBottom: SPACING.md,
-      alignItems: 'center',
+      alignItems: "center",
       borderWidth: 1,
       borderColor: colors.border,
       ...SHADOWS.soft,
     },
     chartContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
     },
     chartCenter: {
-      position: 'absolute',
-      alignItems: 'center',
-      justifyContent: 'center',
+      position: "absolute",
+      alignItems: "center",
+      justifyContent: "center",
     },
     chartLabel: {
       ...TYPOGRAPHY.caption,
@@ -184,30 +206,30 @@ const createStyles = (colors: ThemeColors) =>
     },
     chartAmount: {
       fontSize: 24,
-      fontWeight: '800',
+      fontWeight: "800",
       color: colors.textMain,
     },
 
     warningCard: {
-      backgroundColor: '#FEF3C7',
+      backgroundColor: "#FEF3C7",
       borderRadius: BORDER_RADIUS.lg,
       padding: 16,
       marginBottom: SPACING.lg,
       borderWidth: 1,
-      borderColor: '#FDE68A',
+      borderColor: "#FDE68A",
     },
     warningHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 8,
       marginBottom: 6,
     },
-    warningTitle: { ...TYPOGRAPHY.subtitle, color: '#92400E', fontSize: 16 },
-    warningText: { ...TYPOGRAPHY.body, color: '#92400E', lineHeight: 22 },
-    boldText: { fontWeight: 'bold', color: '#92400E' },
-    plusText: { fontWeight: 'bold', color: '#EF4444' },
+    warningTitle: { ...TYPOGRAPHY.subtitle, color: "#92400E", fontSize: 16 },
+    warningText: { ...TYPOGRAPHY.body, color: "#92400E", lineHeight: 22 },
+    boldText: { fontWeight: "bold", color: "#92400E" },
+    plusText: { fontWeight: "bold", color: "#EF4444" },
 
-    emptyState: { alignItems: 'center', marginTop: SPACING.xl },
+    emptyState: { alignItems: "center", marginTop: SPACING.xl },
     emptyIcon: { fontSize: 48, marginBottom: SPACING.md },
     emptyText: {
       ...TYPOGRAPHY.subtitle,
@@ -217,6 +239,6 @@ const createStyles = (colors: ThemeColors) =>
     emptySubtext: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      textAlign: 'center',
+      textAlign: "center",
     },
-  })
+  });

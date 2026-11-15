@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
+import * as Haptics from "expo-haptics"; // 🚀 Импорт вибрации
 import { useSubscriptionStore } from "../store/useSubscriptionStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { Category, Subscription, SubscriptionStatus } from "../types";
@@ -15,7 +16,6 @@ export const useSubscriptionForm = (
   const { addSubscriptionAndReturn, updateSubscription } =
     useSubscriptionStore();
 
-  // 🚀 Убрали notificationsEnabled
   const { notifyTrials, notifyRegular, reminderHour, reminderMinute } =
     useSettingsStore();
 
@@ -100,7 +100,6 @@ export const useSubscriptionForm = (
       note: note.trim(),
     };
 
-    // 🚀 Убрали enabled из payload
     const settingsPayload = {
       notifyTrials,
       notifyRegular,
@@ -116,9 +115,13 @@ export const useSubscriptionForm = (
       );
     } else {
       const createdSub = addSubscriptionAndReturn(formData);
-      if (createdSub)
+      if (createdSub) {
         await scheduleSubscriptionReminder(createdSub, settingsPayload);
+      }
     }
+
+    // 🚀 ВИБРАЦИЯ УСПЕХА (срабатывает только если всё сохранилось)
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     onSuccess();
   };
