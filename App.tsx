@@ -19,6 +19,7 @@ import { useSubscriptionStore } from "./src/store/useSubscriptionStore";
 import { useSubscriptionSync } from "./src/hooks/useSubscriptionSync";
 import { useBiometricLock } from "./src/hooks/useBiometricLock";
 import { useSecurityStore } from "./src/store/useSecurityStore"; // 🚀 Импорт нового стора
+import { useCurrencyRates } from "./src/hooks/useCurrencyRates";
 
 type ScreenState =
   | "main"
@@ -37,6 +38,7 @@ const AppContent = () => {
   const subToEdit = subscriptions.find((s) => s.id === selectedSubId);
 
   useSubscriptionSync();
+  useCurrencyRates();
 
   return (
     <>

@@ -36,6 +36,21 @@ export const useStatistics = () => {
       return sum + monthlyCost;
     }, 0);
 
+    // 🚀 Топ-3 самых дорогих подписок
+    const topSubscriptions = [...activeSubs]
+      .sort((a, b) => {
+        const priceA =
+          a.billingCycle === "yearly"
+            ? getActualPrice(a) / 12
+            : getActualPrice(a);
+        const priceB =
+          b.billingCycle === "yearly"
+            ? getActualPrice(b) / 12
+            : getActualPrice(b);
+        return priceB - priceA;
+      })
+      .slice(0, 3);
+
     // 2. Будущие траты
     const futureTotalMonthly = subscriptions.reduce((sum, sub) => {
       const priceToUse =
@@ -79,8 +94,10 @@ export const useStatistics = () => {
 
     return {
       totalMonthly: Math.round(totalMonthly),
+      totalYearly: Math.round(totalMonthly * 12), // 🚀 Добавили годовую сумму
       futureTotalMonthly: Math.round(futureTotalMonthly),
       difference: Math.round(difference),
+      topSubscriptions, // 🚀 Возвращаем топ
       result,
     };
   }, [subscriptions]);

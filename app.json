@@ -44,7 +44,8 @@
           "backgroundColor": "#0F172A"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sharing"
     ],
     "extra": {
       "eas": {

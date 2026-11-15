@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Share,
-} from "react-native"; // 🚀 Добавлен Share
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics"; // 🚀 Импорт вибрации
+import * as Haptics from "expo-haptics";
+import * as Sharing from "expo-sharing";
+import ViewShot, { captureRef } from "react-native-view-shot";
 import Svg, { Circle } from "react-native-svg";
 import { useStatistics } from "../hooks/useStatistics";
 import { CategoryProgressBar } from "../components/ui/CategoryProgressBar";
-import { formatPrice } from "../utils/formatUtils"; // 🚀 Импорт форматтера
+import { formatPrice } from "../utils/formatUtils";
+import { getBrandData, getBrandBackground } from "../utils/brandUtils";
+import { BrandIcon } from "../components/ui/BrandIcon";
 import {
   SPACING,
   TYPOGRAPHY,
@@ -29,29 +33,39 @@ interface StatisticsScreenProps {
 export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
   onBack,
 }) => {
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { totalMonthly, futureTotalMonthly, difference, result } =
-    useStatistics();
-  const totalYearly = totalMonthly * 12; // Считаем сумму в год
+  const {
+    totalMonthly,
+    totalYearly,
+    futureTotalMonthly,
+    difference,
+    topSubscriptions,
+    result,
+  } = useStatistics();
+
+  const viewShotRef = useRef<any>(null);
 
   const size = 180;
   const strokeWidth = 24;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-
   let currentOffset = 0;
 
-  // 🚀 Функция шеринга
   const onShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await Share.share({
-        message: `Я отслеживаю подписки в приложении «Стоп-Подписка».\n\nУзнал, что трачу ${formatPrice(totalMonthly)} в месяц (${formatPrice(totalYearly)} в год). А ты?`,
-      });
+      const uri = await captureRef(viewShotRef, { format: "png", quality: 1 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri);
+      }
     } catch (error) {
-      console.error(error);
+      // Если шеринг картинки недоступен, шлем текст
+      await Share.share({
+        message: `Я отслеживаю подписки в приложении «Стоп-Подписка».\n\nТрачу ${formatPrice(totalMonthly)} в месяц (${formatPrice(totalYearly)} в год). А ты?`,
+      });
     }
   };
 
@@ -62,9 +76,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Статистика</Text>
-        {/* 🚀 Кнопка Поделиться */}
         <TouchableOpacity onPress={onShare} style={styles.shareBtn}>
-          <Ionicons name="share-outline" size={24} color={colors.primary} />
+          <Ionicons name="share-social" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -74,46 +87,59 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
         bounces={false}
         overScrollMode="never"
       >
-        <View style={styles.chartCard}>
-          <View style={styles.chartContainer}>
-            <Svg width={size} height={size}>
-              <Circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                stroke={colors.border}
-                strokeWidth={strokeWidth}
-                fill="none"
-              />
-              {result.map((stat) => {
-                const strokeDashoffset = -currentOffset;
-                const segmentLength = (stat.percentage / 100) * circumference;
-                currentOffset += segmentLength;
-                return (
-                  <Circle
-                    key={stat.category}
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    stroke={stat.color}
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                    strokeDasharray={`${segmentLength} ${circumference}`}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="butt"
-                  />
-                );
-              })}
-            </Svg>
-            <View style={styles.chartCenter}>
-              <Text style={styles.chartLabel}>В месяц</Text>
-              {/* 🚀 Форматирование */}
-              <Text style={styles.chartAmount}>
-                {formatPrice(totalMonthly)}
-              </Text>
+        {/* 🚀 КАРТОЧКА ДЛЯ ШЕРИНГА */}
+        <ViewShot
+          ref={viewShotRef}
+          options={{ fileName: "my-stats", format: "png", quality: 1 }}
+        >
+          <View style={styles.shareableCard}>
+            <View style={styles.chartContainer}>
+              <Svg width={size} height={size}>
+                <Circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke="rgba(255,255,255,0.1)"
+                  strokeWidth={strokeWidth}
+                  fill="none"
+                />
+                {result.map((stat) => {
+                  const strokeDashoffset = -currentOffset;
+                  const segmentLength = (stat.percentage / 100) * circumference;
+                  currentOffset += segmentLength;
+                  return (
+                    <Circle
+                      key={stat.category}
+                      cx={size / 2}
+                      cy={size / 2}
+                      r={radius}
+                      stroke={stat.color}
+                      strokeWidth={strokeWidth}
+                      fill="none"
+                      strokeDasharray={`${segmentLength} ${circumference}`}
+                      strokeDashoffset={strokeDashoffset}
+                      strokeLinecap="butt"
+                    />
+                  );
+                })}
+              </Svg>
+              <View style={styles.chartCenter}>
+                <Text style={styles.chartLabel}>В месяц</Text>
+                <Text style={styles.chartAmount}>
+                  {formatPrice(totalMonthly)}
+                </Text>
+                <Text style={styles.chartYearly}>
+                  {formatPrice(totalYearly)}/год
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.shareBrand}>
+              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+              <Text style={styles.shareBrandText}>Стоп-Подписка</Text>
             </View>
           </View>
-        </View>
+        </ViewShot>
 
         {difference > 0 && (
           <View style={styles.warningCard}>
@@ -122,7 +148,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
               <Text style={styles.warningTitle}>Внимание: Триалы</Text>
             </View>
             <Text style={styles.warningText}>
-              Если вы не отмените пробные периоды, ваши расходы вырастут до{" "}
+              Без отмены триалов расходы вырастут до{" "}
               <Text style={styles.boldText}>
                 {formatPrice(futureTotalMonthly)}/мес
               </Text>{" "}
@@ -131,13 +157,44 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
           </View>
         )}
 
+        {/* 🚀 БЛОК ТОП-3 ПОДПИСОК */}
+        {topSubscriptions.length > 0 && (
+          <View style={styles.topSection}>
+            <Text style={styles.sectionTitle}>Самые дорогие</Text>
+            <View style={styles.topList}>
+              {topSubscriptions.map((sub, index) => {
+                const brand = getBrandData(sub.name);
+                const price =
+                  sub.billingCycle === "yearly" ? sub.price / 12 : sub.price;
+                return (
+                  <View key={sub.id} style={styles.topItem}>
+                    <View
+                      style={[
+                        styles.topIconWrapper,
+                        { backgroundColor: getBrandBackground(brand, isDark) },
+                      ]}
+                    >
+                      <BrandIcon brand={brand} size={18} />
+                    </View>
+                    <Text style={styles.topName} numberOfLines={1}>
+                      {sub.name}
+                    </Text>
+                    <Text style={styles.topPrice}>{formatPrice(price)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* БЛОК КАТЕГОРИЙ */}
+        <Text style={[styles.sectionTitle, { marginTop: SPACING.lg }]}>
+          По категориям
+        </Text>
         {result.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>📊</Text>
             <Text style={styles.emptyText}>Нет данных для статистики</Text>
-            <Text style={styles.emptySubtext}>
-              Добавьте подписки, чтобы увидеть, куда уходят деньги
-            </Text>
           </View>
         ) : (
           result.map((stat) => (
@@ -168,7 +225,7 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.md,
     },
     backBtn: { width: 44, justifyContent: "center" },
-    shareBtn: { width: 44, justifyContent: "center", alignItems: "flex-end" }, // 🚀 Стиль для кнопки шеринга
+    shareBtn: { width: 44, justifyContent: "center", alignItems: "flex-end" },
     headerTitle: {
       flex: 1,
       textAlign: "center",
@@ -178,21 +235,22 @@ const createStyles = (colors: ThemeColors) =>
     },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
 
-    chartCard: {
-      backgroundColor: colors.card,
+    // Карточка шеринга
+    shareableCard: {
+      backgroundColor: "#1E293B", // Всегда темная для шеринга
       borderRadius: BORDER_RADIUS.xl,
       paddingVertical: SPACING.xl,
       paddingHorizontal: SPACING.lg,
       marginBottom: SPACING.md,
       alignItems: "center",
       borderWidth: 1,
-      borderColor: colors.border,
-      ...SHADOWS.soft,
+      borderColor: "#334155",
     },
     chartContainer: {
       alignItems: "center",
       justifyContent: "center",
       position: "relative",
+      marginBottom: SPACING.md,
     },
     chartCenter: {
       position: "absolute",
@@ -201,15 +259,30 @@ const createStyles = (colors: ThemeColors) =>
     },
     chartLabel: {
       ...TYPOGRAPHY.caption,
-      color: colors.textSecondary,
+      color: "rgba(255,255,255,0.7)",
       marginBottom: 2,
     },
-    chartAmount: {
-      fontSize: 24,
-      fontWeight: "800",
-      color: colors.textMain,
+    chartAmount: { fontSize: 24, fontWeight: "800", color: "#FFF" },
+    chartYearly: {
+      ...TYPOGRAPHY.caption,
+      color: "rgba(255,255,255,0.5)",
+      marginTop: 2,
+      fontSize: 12,
+    },
+    shareBrand: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: SPACING.xs,
+    },
+    shareBrandText: {
+      ...TYPOGRAPHY.caption,
+      color: "rgba(255,255,255,0.6)",
+      fontWeight: "bold",
+      fontSize: 12,
     },
 
+    // Плашка триалов
     warningCard: {
       backgroundColor: "#FEF3C7",
       borderRadius: BORDER_RADIUS.lg,
@@ -229,16 +302,52 @@ const createStyles = (colors: ThemeColors) =>
     boldText: { fontWeight: "bold", color: "#92400E" },
     plusText: { fontWeight: "bold", color: "#EF4444" },
 
+    // Топ-3
+    topSection: { marginBottom: SPACING.md },
+    sectionTitle: {
+      ...TYPOGRAPHY.subtitle,
+      color: colors.textSecondary,
+      fontSize: 14,
+      textTransform: "uppercase",
+      marginBottom: SPACING.sm,
+    },
+    topList: {
+      backgroundColor: colors.card,
+      borderRadius: BORDER_RADIUS.lg,
+      padding: SPACING.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    topItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 10,
+      paddingHorizontal: SPACING.xs,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.background,
+    },
+    topIconWrapper: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: SPACING.sm,
+    },
+    topName: {
+      flex: 1,
+      ...TYPOGRAPHY.body,
+      color: colors.textMain,
+      fontSize: 15,
+      fontWeight: "500",
+    },
+    topPrice: { ...TYPOGRAPHY.subtitle, color: colors.primary, fontSize: 15 },
+
     emptyState: { alignItems: "center", marginTop: SPACING.xl },
     emptyIcon: { fontSize: 48, marginBottom: SPACING.md },
     emptyText: {
       ...TYPOGRAPHY.subtitle,
       color: colors.textMain,
       marginBottom: SPACING.xs,
-    },
-    emptySubtext: {
-      ...TYPOGRAPHY.caption,
-      color: colors.textSecondary,
-      textAlign: "center",
     },
   });

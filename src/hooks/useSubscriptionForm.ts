@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
-import * as Haptics from "expo-haptics"; // 🚀 Импорт вибрации
+import * as Haptics from "expo-haptics";
 import { useSubscriptionStore } from "../store/useSubscriptionStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { Category, Subscription, SubscriptionStatus } from "../types";
@@ -30,6 +30,12 @@ export const useSubscriptionForm = (
   const [cycle, setCycle] = useState<"monthly" | "yearly">(
     initialData?.billingCycle || "monthly",
   );
+
+  // 🚀 ДОБАВИЛИ СОСТОЯНИЕ ДЛЯ ВАЛЮТЫ
+  const [currency, setCurrency] = useState<"RUB" | "USD" | "EUR">(
+    (initialData?.currency as any) || "RUB",
+  );
+
   const [date, setDate] = useState(
     initialData ? new Date(initialData.nextPaymentDate) : new Date(),
   );
@@ -48,6 +54,7 @@ export const useSubscriptionForm = (
       price: initialData?.price?.toString() || "",
       regularPrice: initialData?.regularPrice?.toString() || "",
       cycle: initialData?.billingCycle || "monthly",
+      currency: initialData?.currency || "RUB", // 🚀 Добавили
       date: initialData ? new Date(initialData.nextPaymentDate) : new Date(),
       category: initialData?.category || "entertainment",
       status: initialData?.status || "active",
@@ -62,6 +69,7 @@ export const useSubscriptionForm = (
       price !== initialFormValues.price ||
       regularPrice !== initialFormValues.regularPrice ||
       cycle !== initialFormValues.cycle ||
+      currency !== initialFormValues.currency || // 🚀 Добавили проверку изменения валюты
       format(date, "yyyy-MM-dd") !==
         format(initialFormValues.date, "yyyy-MM-dd") ||
       category !== initialFormValues.category ||
@@ -73,6 +81,7 @@ export const useSubscriptionForm = (
     price,
     regularPrice,
     cycle,
+    currency,
     date,
     category,
     status,
@@ -92,7 +101,7 @@ export const useSubscriptionForm = (
       name,
       price: Number(price),
       regularPrice: status === "trial" ? Number(regularPrice) : undefined,
-      currency: "RUB",
+      currency, // 🚀 Сохраняем валюту в базу
       billingCycle: cycle,
       nextPaymentDate: format(date, "yyyy-MM-dd"),
       category,
@@ -120,9 +129,7 @@ export const useSubscriptionForm = (
       }
     }
 
-    // 🚀 ВИБРАЦИЯ УСПЕХА (срабатывает только если всё сохранилось)
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
     onSuccess();
   };
 
@@ -135,6 +142,8 @@ export const useSubscriptionForm = (
     setRegularPrice,
     cycle,
     setCycle,
+    currency,
+    setCurrency, // 🚀 Возвращаем в интерфейс
     date,
     setDate,
     category,

@@ -13,13 +13,20 @@ import { ru } from "date-fns/locale";
 import { Subscription } from "../types";
 import { getBrandData, getBrandBackground } from "../utils/brandUtils";
 import { BrandIcon } from "./ui/BrandIcon";
-import { formatPrice } from "../utils/formatUtils"; // 🚀 Импорт
+import { formatPrice } from "../utils/formatUtils";
+import { useSettingsStore } from "../store/useSettingsStore";
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
 }
+
+const getCurrencySymbol = (curr: string) => {
+  if (curr === "USD") return "$";
+  if (curr === "EUR") return "€";
+  return "₽";
+};
 
 export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   subscription,
@@ -28,6 +35,13 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const isDark = theme === "dark";
   const styles = useMemo(() => createStyles(colors), [colors]);
   const brand = getBrandData(subscription.name);
+  const { usdRate, eurRate } = useSettingsStore();
+
+  const convertToRub = (amount: number, currency: string) => {
+    if (currency === "USD") return amount * usdRate;
+    if (currency === "EUR") return amount * eurRate;
+    return amount;
+  };
 
   const daysLeft = useMemo(() => {
     return differenceInCalendarDays(
@@ -105,6 +119,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       }
     : null;
 
+  const symbol = getCurrencySymbol(subscription.currency);
+
   return (
     <View style={styles.card}>
       <View
@@ -157,14 +173,21 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           numberOfLines={1}
           adjustsFontSizeToFit={true}
         >
-          {displayPrice === 0 ? "Бесплатно" : formatPrice(displayPrice)}
+          {displayPrice === 0 ? "Бесплатно" : `${displayPrice} ${symbol}`}
           {subscription.billingCycle === "yearly" && (
             <Text style={styles.cycleText}>/год</Text>
           )}
         </Text>
+
+        {subscription.currency !== "RUB" && (
+          <Text style={styles.rubPriceText}>
+            ≈ {formatPrice(convertToRub(displayPrice, subscription.currency))}
+          </Text>
+        )}
+
         {isTrial && subscription.regularPrice && (
           <Text style={styles.regularPriceText} numberOfLines={1}>
-            Далее: {formatPrice(subscription.regularPrice)}
+            Далее: {subscription.regularPrice} {symbol}
           </Text>
         )}
       </View>
@@ -230,6 +253,11 @@ const createStyles = (colors: ThemeColors) =>
     },
     price: { ...TYPOGRAPHY.subtitle, color: colors.textMain },
     cycleText: { fontSize: 12, color: colors.textSecondary, fontWeight: "400" },
+    rubPriceText: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
     regularPriceText: {
       fontSize: 11,
       color: colors.textSecondary,

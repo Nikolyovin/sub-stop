@@ -8,8 +8,9 @@ interface InputFieldProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  keyboardType?: "default" | "numeric";
-  error?: string; // 🚀 Новое поле для ошибки
+  // 🚀 Добавили decimal-pad
+  keyboardType?: "default" | "numeric" | "decimal-pad";
+  error?: string;
 }
 
 export const InputField: React.FC<InputFieldProps> = ({

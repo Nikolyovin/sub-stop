@@ -19,7 +19,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSubscriptionDetails } from "../hooks/useSubscriptionDetails";
-import { formatPrice } from "../utils/formatUtils"; // 🚀 Импорт
+import { formatPrice } from "../utils/formatUtils";
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
 import { Subscription } from "../types";
@@ -32,6 +32,12 @@ interface SubscriptionDetailsScreenProps {
   onBack: () => void;
   onEdit: (sub: Subscription, focus?: "note") => void;
 }
+
+const getCurrencySymbol = (curr: string) => {
+  if (curr === "USD") return "$";
+  if (curr === "EUR") return "€";
+  return "₽";
+};
 
 export const SubscriptionDetailsScreen: React.FC<
   SubscriptionDetailsScreenProps
@@ -226,9 +232,15 @@ export const SubscriptionDetailsScreen: React.FC<
               numberOfLines={1}
               adjustsFontSizeToFit={true}
             >
-              {formatPrice(costs.monthly)}
+              {costs.monthly} {getCurrencySymbol(subscription.currency)}
             </Text>
+            {subscription.currency !== "RUB" && (
+              <Text style={styles.statSubValue}>
+                ≈ {formatPrice(costs.monthlyRub)}
+              </Text>
+            )}
           </View>
+
           {isTrial && costs.futureMonthly > costs.monthly ? (
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>После триала</Text>
@@ -237,8 +249,13 @@ export const SubscriptionDetailsScreen: React.FC<
                 numberOfLines={1}
                 adjustsFontSizeToFit={true}
               >
-                {formatPrice(costs.futureMonthly)}
+                {costs.futureMonthly} {getCurrencySymbol(subscription.currency)}
               </Text>
+              {subscription.currency !== "RUB" && (
+                <Text style={styles.statSubValue}>
+                  ≈ {formatPrice(costs.futureMonthlyRub)}
+                </Text>
+              )}
             </View>
           ) : (
             <View style={styles.statBox}>
@@ -248,8 +265,13 @@ export const SubscriptionDetailsScreen: React.FC<
                 numberOfLines={1}
                 adjustsFontSizeToFit={true}
               >
-                {formatPrice(costs.yearly)}
+                {costs.yearly} {getCurrencySymbol(subscription.currency)}
               </Text>
+              {subscription.currency !== "RUB" && (
+                <Text style={styles.statSubValue}>
+                  ≈ {formatPrice(costs.yearlyRub)}
+                </Text>
+              )}
             </View>
           )}
         </View>
@@ -437,6 +459,11 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.xs,
     },
     statValue: { fontSize: 20, fontWeight: "bold", color: colors.primary },
+    statSubValue: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
     progressCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.lg,

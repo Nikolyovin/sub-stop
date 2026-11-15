@@ -37,6 +37,12 @@ interface SubscriptionFormScreenProps {
   focusField?: "note";
 }
 
+const getCurrencySymbol = (curr: string) => {
+  if (curr === "USD") return "$";
+  if (curr === "EUR") return "€";
+  return "₽";
+};
+
 export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
   onBack,
   initialData,
@@ -113,10 +119,20 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
     if (date) form.setDate(date);
   };
 
-  // 🚀 Фильтруем ввод: только цифры
+  // 🚀 Разрешаем ввод дробных чисел
   const handlePriceChange = (text: string, setter: (val: string) => void) => {
-    const cleaned = text.replace(/[^0-9]/g, "").slice(0, 7);
-    setter(cleaned);
+    let cleaned = text.replace(/,/g, ".").replace(/[^0-9.]/g, "");
+    const dotIndex = cleaned.indexOf(".");
+    if (dotIndex !== -1) {
+      cleaned =
+        cleaned.slice(0, dotIndex + 1) +
+        cleaned.slice(dotIndex + 1).replace(/\./g, "");
+    }
+    const [intPart, decPart] = cleaned.split(".");
+    const limitedInt = intPart ? intPart.slice(0, 7) : "";
+    const limitedDec = decPart ? decPart.slice(0, 2) : "";
+    if (cleaned.includes(".")) setter(`${limitedInt}.${limitedDec}`);
+    else setter(limitedInt);
   };
 
   const isPriceInvalid = form.price.length > 0 && isNaN(Number(form.price));
@@ -219,27 +235,53 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
           </View>
 
           <InputField
-            label={
-              form.status === "trial"
-                ? "Стоимость во время промо (₽)"
-                : "Стоимость (₽)"
-            }
+            label={`${
+              form.status === "trial" ? "Стоимость во время промо" : "Стоимость"
+            } (${getCurrencySymbol(form.currency)})`}
             value={form.price}
             onChangeText={(text) => handlePriceChange(text, form.setPrice)}
             placeholder="0"
-            keyboardType="numeric"
+            keyboardType="decimal-pad"
             error={isPriceInvalid ? "Введите число" : undefined}
           />
 
+          <View style={styles.currencyRow}>
+            {["RUB", "USD", "EUR"].map((curr) => (
+              <TouchableOpacity
+                key={curr}
+                style={[
+                  styles.currencyBtn,
+                  form.currency === curr && styles.currencyBtnActive,
+                ]}
+                onPress={() => form.setCurrency(curr as any)}
+              >
+                <Text
+                  style={[
+                    styles.currencyText,
+                    form.currency === curr && styles.currencyTextActive,
+                  ]}
+                >
+                  {curr === "RUB"
+                    ? "₽ RUB"
+                    : curr === "USD"
+                      ? "$ USD"
+                      : "€ EUR"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {form.status === "trial" && (
             <InputField
-              label="Стоимость после окончания (₽)"
+              label={`Стоимость после окончания (${getCurrencySymbol(
+                form.currency,
+              )})`}
               value={form.regularPrice}
               onChangeText={(text) =>
                 handlePriceChange(text, form.setRegularPrice)
               }
               placeholder="Например, 599"
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
               error={isRegularPriceInvalid ? "Введите число" : undefined}
             />
           )}
@@ -388,6 +430,33 @@ const createStyles = (colors: ThemeColors) =>
     },
     statusTextActive: {
       ...TYPOGRAPHY.body,
+      color: colors.white,
+      fontWeight: "bold",
+    },
+    currencyRow: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      marginBottom: SPACING.md,
+    },
+    currencyBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+    },
+    currencyBtnActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    currencyText: {
+      ...TYPOGRAPHY.body,
+      color: colors.textMain,
+      fontSize: 14,
+    },
+    currencyTextActive: {
       color: colors.white,
       fontWeight: "bold",
     },

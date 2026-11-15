@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useSubscriptionStore } from "../store/useSubscriptionStore";
+import { useSettingsStore } from "../store/useSettingsStore";
 import { CATEGORIES, Subscription } from "../types";
 import { differenceInCalendarDays } from "date-fns";
 
@@ -12,6 +13,7 @@ const getActualPrice = (sub: Subscription) => {
 
 export const useSubscriptionDetails = (id: string | null) => {
   const { subscriptions, removeSubscription } = useSubscriptionStore();
+  const { usdRate, eurRate } = useSettingsStore();
 
   const subscription = useMemo(() => {
     return subscriptions.find((s) => s.id === id);
@@ -24,22 +26,42 @@ export const useSubscriptionDetails = (id: string | null) => {
     );
   }, [subscription]);
 
-  // Считаем цены
   const costs = useMemo(() => {
-    if (!subscription) return { monthly: 0, yearly: 0, futureMonthly: 0 };
+    if (!subscription) {
+      return {
+        monthly: 0,
+        yearly: 0,
+        futureMonthly: 0,
+        monthlyRub: 0,
+        yearlyRub: 0,
+        futureMonthlyRub: 0,
+      };
+    }
     const isYearly = subscription.billingCycle === "yearly";
 
     const currentPrice = getActualPrice(subscription);
     const futurePrice = subscription.regularPrice || currentPrice;
 
-    return {
-      monthly: isYearly ? Math.round(currentPrice / 12) : currentPrice,
-      yearly: isYearly ? currentPrice : currentPrice * 12,
-      futureMonthly: isYearly ? Math.round(futurePrice / 12) : futurePrice,
-    };
-  }, [subscription]);
+    const monthly = isYearly ? currentPrice / 12 : currentPrice;
+    const yearly = isYearly ? currentPrice : currentPrice * 12;
+    const futureMonthly = isYearly ? futurePrice / 12 : futurePrice;
 
-  // Считаем прогресс до списания
+    const convertToRub = (amount: number) => {
+      if (subscription.currency === "USD") return amount * usdRate;
+      if (subscription.currency === "EUR") return amount * eurRate;
+      return amount;
+    };
+
+    return {
+      monthly,
+      yearly,
+      futureMonthly,
+      monthlyRub: convertToRub(monthly),
+      yearlyRub: convertToRub(yearly),
+      futureMonthlyRub: convertToRub(futureMonthly),
+    };
+  }, [subscription, usdRate, eurRate]);
+
   const cycleInfo = useMemo(() => {
     if (!subscription) return { daysLeft: 0, progress: 0 };
 
