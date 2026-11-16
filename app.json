@@ -27,6 +27,7 @@
         "./plugins/withDisableForcedDarkModeAndroid.js",
         {}
       ],
+      "@benfurkankilic/expo-yandex-mobile-ads",
       [
         "expo-notifications",
         {
