@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { StatusBar } from 'expo-status-bar'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
-import { MobileAds } from 'yandex-mobile-ads' // 🚀 Импорт рекламы
+import { MobileAds } from 'yandex-mobile-ads' // 🚀 Инициализация рекламы
 
 import { OnboardingScreen } from './src/screens/OnboardingScreen'
 import { MainScreen } from './src/screens/MainScreen'
@@ -13,6 +13,7 @@ import { SubscriptionFormScreen } from './src/screens/SubscriptionFormScreen'
 import { SettingsScreen } from './src/screens/SettingsScreen'
 import { StatisticsScreen } from './src/screens/StatisticsScreen'
 import { PremiumScreen } from './src/screens/PremiumScreen'
+import { CalendarScreen } from './src/screens/CalendarScreen' // 🚀 Импорт календаря
 import { LockScreen } from './src/components/LockScreen'
 
 import { ThemeProvider } from './src/theme/ThemeContext'
@@ -29,6 +30,7 @@ type ScreenState =
   | 'settings'
   | 'statistics'
   | 'premium'
+  | 'calendar'
 
 const AppContent = () => {
   const [screen, setScreen] = useState<ScreenState>('main')
@@ -56,6 +58,7 @@ const AppContent = () => {
           }}
           onOpenSettings={() => setScreen('settings')}
           onOpenStatistics={() => setScreen('statistics')}
+          onOpenCalendar={() => setScreen('calendar')} // 🚀 Передаем переход
         />
       )}
 
@@ -90,6 +93,13 @@ const AppContent = () => {
         <StatisticsScreen onBack={() => setScreen('main')} />
       )}
 
+      {screen === 'calendar' && (
+        <CalendarScreen
+          onBack={() => setScreen('main')}
+          onOpenPremium={() => setScreen('premium')}
+        />
+      )}
+
       {screen === 'premium' && (
         <PremiumScreen onBack={() => setScreen('settings')} />
       )}
@@ -104,13 +114,12 @@ export default function App() {
   const { isLockEnabled, isUnlocked } = useSecurityStore()
   const { isAuthenticating, authenticate } = useBiometricLock()
 
-  // 🚀 Инициализация рекламного SDK
+  // 🚀 Инициализация Yandex Mobile Ads при старте
   useEffect(() => {
     try {
       MobileAds.initialize()
-      console.log('Yandex Mobile Ads initialized')
     } catch (error) {
-      console.error('Failed to initialize ads:', error)
+      console.error('Ошибка инициализации рекламы:', error)
     }
   }, [])
 

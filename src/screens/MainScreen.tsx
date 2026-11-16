@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { BannerView, BannerAdSize } from 'yandex-mobile-ads' // 🚀 Импорт баннера
+import { BannerView, BannerAdSize } from 'yandex-mobile-ads' // 🚀 Реклама
 import { useDashboard } from '../hooks/useDashboard'
 import { usePremiumStore } from '../store/usePremiumStore'
 import { UndoSnackbar } from '../components/ui/UndoSnackbar'
@@ -29,6 +29,7 @@ interface MainScreenProps {
   onOpenSettings: () => void
   onOpenDetails: (id: string) => void
   onOpenStatistics: () => void
+  onOpenCalendar: () => void // 🚀 Новый пропс
 }
 
 const UNDO_TIMEOUT_MS = 5000
@@ -38,6 +39,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   onOpenSettings,
   onOpenDetails,
   onOpenStatistics,
+  onOpenCalendar,
 }) => {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
@@ -179,6 +181,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         )}
       </TouchableOpacity>
 
+      {/* 🚀 Кнопка перехода в календарь */}
+      <TouchableOpacity
+        style={styles.calendarBtn}
+        onPress={onOpenCalendar}
+        activeOpacity={0.7}
+      >
+        <View style={styles.calendarIconBg}>
+          <Ionicons name='calendar-outline' size={20} color={colors.primary} />
+        </View>
+        <Text style={styles.calendarBtnText}>Календарь списаний</Text>
+        <Ionicons
+          name='chevron-forward'
+          size={20}
+          color={colors.textSecondary}
+        />
+      </TouchableOpacity>
+
       {subscriptions.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>У вас пока нет подписок</Text>
@@ -204,7 +223,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         />
       )}
 
-      {/* 🚀 РЕКЛАМНЫЙ БАННЕР (Скрывается, если куплен Премиум) */}
+      {/* 🚀 РЕКЛАМНЫЙ БАННЕР (Скрыт для Премиум) */}
       {!isPremium && (
         <View style={styles.adContainer}>
           <BannerView
@@ -294,7 +313,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: BORDER_RADIUS.xl,
       padding: SPACING.lg,
       marginHorizontal: SPACING.lg,
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.md, // 🚀 Уменьшили отступ, так как появилась кнопка календаря
       ...SHADOWS.medium,
     },
     cardHeader: {
@@ -331,6 +350,36 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: SPACING.xs,
       fontStyle: 'italic',
     },
+
+    // 🚀 Стили кнопки календаря
+    calendarBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+      padding: SPACING.md,
+      borderRadius: BORDER_RADIUS.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...SHADOWS.soft,
+    },
+    calendarIconBg: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: `${colors.primary}15`,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: SPACING.sm,
+    },
+    calendarBtnText: {
+      flex: 1,
+      ...TYPOGRAPHY.body,
+      color: colors.textMain,
+      fontWeight: '500',
+    },
+
     emptyState: {
       flex: 1,
       justifyContent: 'center',
@@ -350,7 +399,8 @@ const createStyles = (colors: ThemeColors) =>
       ...SHADOWS.soft,
     },
     testButtonText: { ...TYPOGRAPHY.button, color: colors.primary },
-    // 🚀 Стиль контейнера для баннера
+
+    // 🚀 Стили для рекламного баннера
     adContainer: {
       alignItems: 'center',
       justifyContent: 'center',
