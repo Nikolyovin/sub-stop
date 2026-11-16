@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect } from 'react'
 import {
   View,
   Text,
@@ -7,60 +7,60 @@ import {
   ScrollView,
   Alert,
   Platform,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { format, differenceInCalendarDays } from "date-fns";
-import { ru } from "date-fns/locale";
+} from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { format, differenceInCalendarDays } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withSequence,
   withTiming,
-} from "react-native-reanimated";
-import { useSubscriptionDetails } from "../hooks/useSubscriptionDetails";
-import { formatPrice } from "../utils/formatUtils";
-import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
-import { useTheme } from "../theme/ThemeContext";
-import { Subscription } from "../types";
-import { HeaderBackButton } from "../components/ui/HeaderBackButton";
-import { getBrandData, getBrandBackground } from "../utils/brandUtils";
-import { BrandIcon } from "../components/ui/BrandIcon";
+} from 'react-native-reanimated'
+import { useSubscriptionDetails } from '../hooks/useSubscriptionDetails'
+import { formatPrice } from '../utils/formatUtils'
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../theme'
+import { useTheme } from '../theme/ThemeContext'
+import { Subscription } from '../types'
+import { HeaderBackButton } from '../components/ui/HeaderBackButton'
+import { getBrandData, getBrandBackground } from '../utils/brandUtils'
+import { BrandIcon } from '../components/ui/BrandIcon'
 
 interface SubscriptionDetailsScreenProps {
-  subscriptionId: string;
-  onBack: () => void;
-  onEdit: (sub: Subscription, focus?: "note") => void;
+  subscriptionId: string
+  onBack: () => void
+  onEdit: (sub: Subscription, focus?: 'note') => void
 }
 
 const getCurrencySymbol = (curr: string) => {
-  if (curr === "USD") return "$";
-  if (curr === "EUR") return "€";
-  return "₽";
-};
+  if (curr === 'USD') return '$'
+  if (curr === 'EUR') return '€'
+  return '₽'
+}
 
 export const SubscriptionDetailsScreen: React.FC<
   SubscriptionDetailsScreenProps
 > = ({ subscriptionId, onBack, onEdit }) => {
-  const { colors, theme } = useTheme();
-  const isDark = theme === "dark";
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, theme } = useTheme()
+  const isDark = theme === 'dark'
+  const styles = useMemo(() => createStyles(colors), [colors])
 
   const { subscription, categoryData, costs, cycleInfo, removeSubscription } =
-    useSubscriptionDetails(subscriptionId);
+    useSubscriptionDetails(subscriptionId)
 
   const daysLeft = useMemo(() => {
-    if (!subscription || subscription.status !== "trial") return null;
+    if (!subscription || subscription.status !== 'trial') return null
     return differenceInCalendarDays(
       new Date(subscription.nextPaymentDate),
       new Date(),
-    );
-  }, [subscription]);
+    )
+  }, [subscription])
 
-  const isTrial = subscription?.status === "trial";
-  const isTrialEndingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
+  const isTrial = subscription?.status === 'trial'
+  const isTrialEndingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3
 
-  const pulse = useSharedValue(1);
+  const pulse = useSharedValue(1)
   useEffect(() => {
     if (isTrialEndingSoon) {
       pulse.value = withRepeat(
@@ -70,15 +70,15 @@ export const SubscriptionDetailsScreen: React.FC<
         ),
         -1,
         true,
-      );
+      )
     } else {
-      pulse.value = 1;
+      pulse.value = 1
     }
-  }, [isTrialEndingSoon, pulse]);
+  }, [isTrialEndingSoon, pulse])
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
-  }));
+  }))
 
   if (!subscription || !categoryData) {
     return (
@@ -88,55 +88,55 @@ export const SubscriptionDetailsScreen: React.FC<
           <Text>Назад</Text>
         </TouchableOpacity>
       </View>
-    );
+    )
   }
 
-  const brand = getBrandData(subscription.name);
+  const brand = getBrandData(subscription.name)
   const formattedDate = format(
     new Date(subscription.nextPaymentDate),
-    "d MMMM yyyy",
+    'd MMMM yyyy',
     { locale: ru },
-  );
+  )
   const isTrialExpired =
-    subscription.status === "trial" &&
-    new Date(subscription.nextPaymentDate) < new Date();
+    subscription.status === 'trial' &&
+    new Date(subscription.nextPaymentDate) < new Date()
 
   const handleBadgePress = () => {
     if (isTrialEndingSoon && daysLeft !== null) {
       const dayText =
         daysLeft === 0
-          ? "сегодня"
+          ? 'сегодня'
           : daysLeft === 1
-            ? "завтра"
-            : `через ${daysLeft} дн.`;
+            ? 'завтра'
+            : `через ${daysLeft} дн.`
       const priceText = subscription.regularPrice
         ? ` Далее спишут ${formatPrice(subscription.regularPrice)}.`
-        : "";
+        : ''
       Alert.alert(
-        "Триал скоро закончится ⏳",
+        'Триал скоро закончится ⏳',
         `Пробный период на «${subscription.name}» закончится ${dayText}.${priceText}`,
-        [{ text: "Понятно", style: "default" }],
-      );
+        [{ text: 'Понятно', style: 'default' }],
+      )
     }
-  };
+  }
 
   const handleDelete = () => {
     Alert.alert(
-      "Удалить подписку?",
-      "Вы уверены, что хотите удалить эту подписку из трекера?",
+      'Удалить подписку?',
+      'Вы уверены, что хотите удалить эту подписку из трекера?',
       [
-        { text: "Отмена", style: "cancel" },
+        { text: 'Отмена', style: 'cancel' },
         {
-          text: "Удалить",
-          style: "destructive",
+          text: 'Удалить',
+          style: 'destructive',
           onPress: () => {
-            removeSubscription(subscription.id);
-            onBack();
+            removeSubscription(subscription.id)
+            onBack()
           },
         },
       ],
-    );
-  };
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -148,7 +148,7 @@ export const SubscriptionDetailsScreen: React.FC<
 
       <ScrollView
         bounces={false}
-        overScrollMode="never"
+        overScrollMode='never'
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
@@ -163,8 +163,8 @@ export const SubscriptionDetailsScreen: React.FC<
           </View>
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
+              flexDirection: 'row',
+              alignItems: 'center',
               gap: 8,
               marginBottom: 2,
             }}
@@ -185,17 +185,17 @@ export const SubscriptionDetailsScreen: React.FC<
                   {isTrialEndingSoon && (
                     <Animated.View style={pulseStyle}>
                       <Ionicons
-                        name="alert-circle"
+                        name='alert-circle'
                         size={12}
-                        color="#fff"
+                        color='#fff'
                         style={{ marginRight: 3 }}
                       />
                     </Animated.View>
                   )}
                   <Text style={styles.trialBadgeText}>
                     {isTrialEndingSoon
-                      ? `TRIAL • ${daysLeft === 0 ? "Сегодня" : daysLeft === 1 ? "Завтра" : `${daysLeft} дн.`}`
-                      : "TRIAL"}
+                      ? `TRIAL • ${daysLeft === 0 ? 'Сегодня' : daysLeft === 1 ? 'Завтра' : `${daysLeft} дн.`}`
+                      : 'TRIAL'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -225,7 +225,7 @@ export const SubscriptionDetailsScreen: React.FC<
         <View style={styles.statsGrid}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>
-              {isTrial ? "Сейчас" : "В месяц"}
+              {isTrial ? 'Сейчас' : 'В месяц'}
             </Text>
             <Text
               style={styles.statValue}
@@ -234,7 +234,8 @@ export const SubscriptionDetailsScreen: React.FC<
             >
               {costs.monthly} {getCurrencySymbol(subscription.currency)}
             </Text>
-            {subscription.currency !== "RUB" && (
+            {/* 🚀 Показываем только если больше 0 */}
+            {subscription.currency !== 'RUB' && costs.monthly > 0 && (
               <Text style={styles.statSubValue}>
                 ≈ {formatPrice(costs.monthlyRub)}
               </Text>
@@ -251,7 +252,7 @@ export const SubscriptionDetailsScreen: React.FC<
               >
                 {costs.futureMonthly} {getCurrencySymbol(subscription.currency)}
               </Text>
-              {subscription.currency !== "RUB" && (
+              {subscription.currency !== 'RUB' && costs.futureMonthly > 0 && (
                 <Text style={styles.statSubValue}>
                   ≈ {formatPrice(costs.futureMonthlyRub)}
                 </Text>
@@ -267,7 +268,7 @@ export const SubscriptionDetailsScreen: React.FC<
               >
                 {costs.yearly} {getCurrencySymbol(subscription.currency)}
               </Text>
-              {subscription.currency !== "RUB" && (
+              {subscription.currency !== 'RUB' && costs.yearly > 0 && (
                 <Text style={styles.statSubValue}>
                   ≈ {formatPrice(costs.yearlyRub)}
                 </Text>
@@ -279,13 +280,13 @@ export const SubscriptionDetailsScreen: React.FC<
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressTitle}>
-              {isTrial ? "Конец пробного периода" : "Следующее списание"}
+              {isTrial ? 'Конец пробного периода' : 'Следующее списание'}
             </Text>
             <Text style={styles.progressValue}>
               {cycleInfo.daysLeft === 0
-                ? "Сегодня"
+                ? 'Сегодня'
                 : cycleInfo.daysLeft === 1
-                  ? "Завтра"
+                  ? 'Завтра'
                   : `Через ${cycleInfo.daysLeft} дн.`}
             </Text>
           </View>
@@ -301,13 +302,13 @@ export const SubscriptionDetailsScreen: React.FC<
 
         <View style={styles.infoRow}>
           <Ionicons
-            name="calendar-outline"
+            name='calendar-outline'
             size={24}
             color={colors.textSecondary}
           />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>
-              {isTrial ? "Конец пробного периода" : "Следующее списание"}
+              {isTrial ? 'Конец пробного периода' : 'Следующее списание'}
             </Text>
             <Text style={styles.infoValue}>{formattedDate}</Text>
           </View>
@@ -315,16 +316,16 @@ export const SubscriptionDetailsScreen: React.FC<
 
         <View style={styles.infoRow}>
           <Ionicons
-            name="repeat-outline"
+            name='repeat-outline'
             size={24}
             color={colors.textSecondary}
           />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>Периодичность</Text>
             <Text style={styles.infoValue}>
-              {subscription.billingCycle === "monthly"
-                ? "Каждый месяц"
-                : "Каждый год"}
+              {subscription.billingCycle === 'monthly'
+                ? 'Каждый месяц'
+                : 'Каждый год'}
             </Text>
           </View>
         </View>
@@ -333,10 +334,10 @@ export const SubscriptionDetailsScreen: React.FC<
           <TouchableOpacity
             style={styles.noteCard}
             activeOpacity={0.7}
-            onPress={() => onEdit(subscription, "note")}
+            onPress={() => onEdit(subscription, 'note')}
           >
             <Ionicons
-              name="document-text-outline"
+              name='document-text-outline'
               size={24}
               color={colors.textSecondary}
             />
@@ -344,7 +345,7 @@ export const SubscriptionDetailsScreen: React.FC<
               <Text style={styles.noteLabel}>Заметка</Text>
               <Text style={styles.noteText}>{subscription.note}</Text>
             </View>
-            <Ionicons name="pencil" size={16} color={colors.border} />
+            <Ionicons name='pencil' size={16} color={colors.border} />
           </TouchableOpacity>
         ) : null}
       </ScrollView>
@@ -368,35 +369,35 @@ export const SubscriptionDetailsScreen: React.FC<
         </TouchableOpacity>
       </View>
     </View>
-  );
-};
+  )
+}
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       paddingHorizontal: SPACING.lg,
       height: 56,
       marginBottom: SPACING.md,
     },
     headerTitle: {
       flex: 1,
-      textAlign: "center",
+      textAlign: 'center',
       ...TYPOGRAPHY.title,
       color: colors.textMain,
       fontSize: 22,
     },
     placeholder: { width: 44 },
     content: { paddingHorizontal: SPACING.lg },
-    errorText: { ...TYPOGRAPHY.body, textAlign: "center", marginTop: 50 },
+    errorText: { ...TYPOGRAPHY.body, textAlign: 'center', marginTop: 50 },
     heroCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.xl,
       padding: SPACING.lg,
-      alignItems: "center",
+      alignItems: 'center',
       marginBottom: SPACING.sm,
       borderWidth: 1,
       borderColor: colors.border,
@@ -405,25 +406,25 @@ const createStyles = (colors: ThemeColors) =>
       width: 64,
       height: 64,
       borderRadius: 32,
-      justifyContent: "center",
-      alignItems: "center",
+      justifyContent: 'center',
+      alignItems: 'center',
       marginBottom: SPACING.sm,
     },
     subName: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 22 },
     subCategory: { ...TYPOGRAPHY.caption, color: colors.textSecondary },
     trialBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: "#F59E0B",
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F59E0B',
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
     },
     trialBadgeWarning: { backgroundColor: colors.danger },
-    trialBadgeText: { fontSize: 10, color: "#fff", fontWeight: "bold" },
+    trialBadgeText: { fontSize: 10, color: '#fff', fontWeight: 'bold' },
     banner: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: 'row',
+      alignItems: 'center',
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.lg,
       marginBottom: SPACING.sm,
@@ -441,7 +442,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 14,
     },
     statsGrid: {
-      flexDirection: "row",
+      flexDirection: 'row',
       gap: SPACING.md,
       marginBottom: SPACING.sm,
     },
@@ -458,7 +459,7 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       marginBottom: SPACING.xs,
     },
-    statValue: { fontSize: 20, fontWeight: "bold", color: colors.primary },
+    statValue: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
     statSubValue: {
       fontSize: 12,
       color: colors.textSecondary,
@@ -473,15 +474,15 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
     },
     progressHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       marginBottom: SPACING.sm,
     },
     progressTitle: {
       ...TYPOGRAPHY.body,
       color: colors.textMain,
-      fontWeight: "500",
+      fontWeight: '500',
     },
     progressValue: {
       ...TYPOGRAPHY.subtitle,
@@ -492,16 +493,16 @@ const createStyles = (colors: ThemeColors) =>
       height: 8,
       backgroundColor: colors.background,
       borderRadius: 4,
-      overflow: "hidden",
+      overflow: 'hidden',
     },
     progressBarFill: {
-      height: "100%",
+      height: '100%',
       backgroundColor: colors.primary,
       borderRadius: 4,
     },
     infoRow: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.lg,
       padding: SPACING.md,
@@ -518,7 +519,7 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: 2,
     },
     noteCard: {
-      flexDirection: "row",
+      flexDirection: 'row',
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.lg,
       padding: SPACING.md,
@@ -526,7 +527,7 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       borderColor: colors.border,
       gap: SPACING.sm,
-      alignItems: "center",
+      alignItems: 'center',
     },
     noteTextContainer: { flex: 1 },
     noteLabel: {
@@ -537,19 +538,19 @@ const createStyles = (colors: ThemeColors) =>
     noteText: {
       ...TYPOGRAPHY.body,
       color: colors.textMain,
-      fontStyle: "italic",
+      fontStyle: 'italic',
     },
     bottomActions: {
       paddingHorizontal: SPACING.lg,
       paddingTop: SPACING.sm,
-      paddingBottom: Platform.OS === "ios" ? 34 : SPACING.md,
+      paddingBottom: Platform.OS === 'ios' ? 34 : SPACING.md,
       backgroundColor: colors.background,
       gap: SPACING.sm,
     },
     actionBtn: {
       paddingVertical: 14,
       borderRadius: BORDER_RADIUS.round,
-      alignItems: "center",
+      alignItems: 'center',
     },
     actionBtnText: { ...TYPOGRAPHY.button, fontSize: 16 },
-  });
+  })

@@ -2,11 +2,11 @@
   "expo": {
     "name": "Стоп-Подписка",
     "slug": "sub-stop",
-    "scheme": "substop",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "substop",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
@@ -23,6 +23,7 @@
     },
     "plugins": [
       ["./plugins/withDisableForcedDarkModeAndroid.js", {}],
+      "@benfurkankilic/expo-yandex-mobile-ads",
       [
         "expo-notifications",
         {
@@ -41,8 +42,7 @@
         }
       ],
       "expo-web-browser",
-      "expo-sharing",
-      "@benfurkankilic/expo-yandex-mobile-ads"
+      "expo-sharing"
     ],
     "extra": {
       "eas": {
