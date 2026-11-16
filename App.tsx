@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { StatusBar } from 'expo-status-bar'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
-import { MobileAds } from 'yandex-mobile-ads' // 🚀 Инициализация рекламы
+import { MobileAds } from 'yandex-mobile-ads'
 
 import { OnboardingScreen } from './src/screens/OnboardingScreen'
 import { MainScreen } from './src/screens/MainScreen'
@@ -13,7 +13,7 @@ import { SubscriptionFormScreen } from './src/screens/SubscriptionFormScreen'
 import { SettingsScreen } from './src/screens/SettingsScreen'
 import { StatisticsScreen } from './src/screens/StatisticsScreen'
 import { PremiumScreen } from './src/screens/PremiumScreen'
-import { CalendarScreen } from './src/screens/CalendarScreen' // 🚀 Импорт календаря
+import { CalendarScreen } from './src/screens/CalendarScreen'
 import { LockScreen } from './src/components/LockScreen'
 
 import { ThemeProvider } from './src/theme/ThemeContext'
@@ -22,6 +22,7 @@ import { useSubscriptionSync } from './src/hooks/useSubscriptionSync'
 import { useBiometricLock } from './src/hooks/useBiometricLock'
 import { useSecurityStore } from './src/store/useSecurityStore'
 import { useCurrencyRates } from './src/hooks/useCurrencyRates'
+import { useInterstitialAd } from './src/hooks/useInterstitialAd' // 🚀 Импорт хука рекламы
 
 type ScreenState =
   | 'main'
@@ -43,6 +44,9 @@ const AppContent = () => {
   useSubscriptionSync()
   useCurrencyRates()
 
+  // 🚀 Хук для межстраничной рекламы
+  const { showActionAd } = useInterstitialAd()
+
   return (
     <>
       {screen === 'main' && (
@@ -58,7 +62,8 @@ const AppContent = () => {
           }}
           onOpenSettings={() => setScreen('settings')}
           onOpenStatistics={() => setScreen('statistics')}
-          onOpenCalendar={() => setScreen('calendar')} // 🚀 Передаем переход
+          onOpenCalendar={() => setScreen('calendar')}
+          onShowAd={showActionAd} // 🚀 Передаем триггер рекламы
         />
       )}
 
@@ -77,7 +82,13 @@ const AppContent = () => {
       {screen === 'form' && (
         <SubscriptionFormScreen
           initialData={subToEdit}
-          onBack={() => setScreen(selectedSubId ? 'details' : 'main')}
+          onBack={() => {
+            setScreen(selectedSubId ? 'details' : 'main')
+            // 🚀 Показываем рекламу при возврате из формы добавления (если это была новая подписка)
+            if (!selectedSubId) {
+              showActionAd()
+            }
+          }}
           focusField={focusField}
         />
       )}
@@ -114,7 +125,6 @@ export default function App() {
   const { isLockEnabled, isUnlocked } = useSecurityStore()
   const { isAuthenticating, authenticate } = useBiometricLock()
 
-  // 🚀 Инициализация Yandex Mobile Ads при старте
   useEffect(() => {
     try {
       MobileAds.initialize()

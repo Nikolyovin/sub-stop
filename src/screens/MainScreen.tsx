@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { BannerView, BannerAdSize } from 'yandex-mobile-ads' // 🚀 Реклама
+import { BannerView, BannerAdSize } from 'yandex-mobile-ads'
 import { useDashboard } from '../hooks/useDashboard'
 import { usePremiumStore } from '../store/usePremiumStore'
 import { UndoSnackbar } from '../components/ui/UndoSnackbar'
@@ -29,7 +29,8 @@ interface MainScreenProps {
   onOpenSettings: () => void
   onOpenDetails: (id: string) => void
   onOpenStatistics: () => void
-  onOpenCalendar: () => void // 🚀 Новый пропс
+  onOpenCalendar: () => void
+  onShowAd: () => void // 🚀 Добавлен пропс для рекламы
 }
 
 const UNDO_TIMEOUT_MS = 5000
@@ -40,6 +41,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   onOpenDetails,
   onOpenStatistics,
   onOpenCalendar,
+  onShowAd,
 }) => {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
@@ -81,12 +83,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       removeSubscription(id)
       setShowUndo(true)
 
+      // 🚀 Вызываем показ рекламы при удалении
+      onShowAd()
+
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => {
         setShowUndo(false)
       }, UNDO_TIMEOUT_MS)
     },
-    [removeSubscription, subscriptions, openCardId],
+    [removeSubscription, subscriptions, openCardId, onShowAd],
   )
 
   const handleUndo = useCallback(() => {
@@ -181,7 +186,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         )}
       </TouchableOpacity>
 
-      {/* 🚀 Кнопка перехода в календарь */}
       <TouchableOpacity
         style={styles.calendarBtn}
         onPress={onOpenCalendar}
@@ -223,7 +227,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         />
       )}
 
-      {/* 🚀 РЕКЛАМНЫЙ БАННЕР (Скрыт для Премиум) */}
       {!isPremium && (
         <View style={styles.adContainer}>
           <BannerView
@@ -313,7 +316,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: BORDER_RADIUS.xl,
       padding: SPACING.lg,
       marginHorizontal: SPACING.lg,
-      marginBottom: SPACING.md, // 🚀 Уменьшили отступ, так как появилась кнопка календаря
+      marginBottom: SPACING.md,
       ...SHADOWS.medium,
     },
     cardHeader: {
@@ -351,7 +354,6 @@ const createStyles = (colors: ThemeColors) =>
       fontStyle: 'italic',
     },
 
-    // 🚀 Стили кнопки календаря
     calendarBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -400,7 +402,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     testButtonText: { ...TYPOGRAPHY.button, color: colors.primary },
 
-    // 🚀 Стили для рекламного баннера
     adContainer: {
       alignItems: 'center',
       justifyContent: 'center',
