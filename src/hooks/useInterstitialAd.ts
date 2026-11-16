@@ -1,77 +1,93 @@
-import { useEffect, useRef } from 'react'
-import { AppState, AppStateStatus } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { InterstitialAd } from 'yandex-mobile-ads'
-import { usePremiumStore } from '../store/usePremiumStore'
+import { useEffect, useRef } from "react";
+import { AppState, AppStateStatus } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { InterstitialAd, InterstitialAdLoader } from "yandex-mobile-ads";
+import { usePremiumStore } from "../store/usePremiumStore";
 
-const AD_KEY = '@sub_stop_last_ad_shown'
-const ACTION_COOLDOWN_MS = 10 * 60 * 1000 // 10 минут для добавления/удаления
-const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1000 // 24 часа для входа в приложение
+const AD_KEY = "@sub_stop_last_ad_shown";
+const ACTION_COOLDOWN_MS = 10 * 60 * 1000; // 10 минут
+const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 часа
 
-// 🚀 ЗАМЕНИ НА СВОЙ ID МЕЖСТРАНИЧНОЙ РЕКЛАМЫ
-const INTERSTITIAL_AD_UNIT_ID = 'R-M-20431707-2'
+// 🚀 Твой ID межстраничной рекламы
+const INTERSTITIAL_AD_UNIT_ID = "R-M-20431707-2";
 
 export const useInterstitialAd = () => {
-  const { isPremium } = usePremiumStore()
+  const { isPremium } = usePremiumStore();
+  const interstitialRef = useRef<InterstitialAd | null>(null);
+  const isLoadingRef = useRef(false);
 
-  // Создаем объект рекламы
-  const interstitial = useRef(
-    InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID),
-  ).current
-
-  // Загружаем рекламу в фоне
-  useEffect(() => {
-    if (!isPremium) {
-      interstitial.load()
-    }
-  }, [isPremium, interstitial])
-
-  // Функция показа рекламы с проверкой времени
-  const showAd = async (type: 'action' | 'daily') => {
-    if (isPremium || !interstitial.loaded) return
+  const loadAd = async () => {
+    if (isPremium || isLoadingRef.current || interstitialRef.current) return;
+    isLoadingRef.current = true;
 
     try {
-      const lastShownStr = await AsyncStorage.getItem(AD_KEY)
-      const lastShown = lastShownStr ? parseInt(lastShownStr) : 0
-      const now = Date.now()
-      const timePassed = now - lastShown
+      const loader = await InterstitialAdLoader.create();
+      const ad = await loader.loadAd({
+        adUnitId: INTERSTITIAL_AD_UNIT_ID,
+      });
 
-      const cooldown =
-        type === 'action' ? ACTION_COOLDOWN_MS : DAILY_COOLDOWN_MS
+      ad.onAdShown = () => console.log("✅ Interstitial показан");
+      ad.onAdDismissed = () => {
+        interstitialRef.current = null;
+      };
+      ad.onAdFailedToShow = (error) => {
+        console.error("❌ Ошибка показа Interstitial:", error);
+        interstitialRef.current = null;
+      };
 
-      if (timePassed > cooldown) {
-        interstitial.show()
-        await AsyncStorage.setItem(AD_KEY, now.toString())
-
-        // Сразу начинаем грузить следующую рекламу
-        setTimeout(() => interstitial.load(), 2000)
-      }
+      interstitialRef.current = ad;
+      console.log("✅ Interstitial загружен и готов к показу");
     } catch (error) {
-      console.error('Ошибка показа рекламы:', error)
+      console.error("❌ Ошибка загрузки Interstitial:", error);
+    } finally {
+      isLoadingRef.current = false;
     }
-  }
+  };
 
-  // 🚀 Следим за открытием приложения (раз в сутки)
   useEffect(() => {
-    const handleAppStateChange = (nextState: AppStateStatus) => {
-      if (nextState === 'active') {
-        showAd('daily')
-      }
-    }
+    if (isPremium) return;
+    loadAd();
 
     const subscription = AppState.addEventListener(
-      'change',
-      handleAppStateChange,
-    )
+      "change",
+      (nextState: AppStateStatus) => {
+        if (nextState === "active" && !interstitialRef.current) {
+          loadAd();
+        }
+      },
+    );
 
-    // Проверяем при первом запуске
-    showAd('daily')
+    return () => subscription.remove();
+  }, [isPremium]);
 
-    return () => subscription.remove()
-  }, [isPremium, interstitial])
+  const showAd = async (type: "action" | "daily") => {
+    if (isPremium || !interstitialRef.current) return;
 
-  // Возвращаем функцию для вызова при добавлении/удалении
+    try {
+      const lastShownStr = await AsyncStorage.getItem(AD_KEY);
+      const lastShown = lastShownStr ? parseInt(lastShownStr) : 0;
+      const now = Date.now();
+      const timePassed = now - lastShown;
+
+      const cooldown =
+        type === "action" ? ACTION_COOLDOWN_MS : DAILY_COOLDOWN_MS;
+
+      if (timePassed > cooldown) {
+        interstitialRef.current.show();
+        await AsyncStorage.setItem(AD_KEY, now.toString());
+      }
+    } catch (error) {
+      console.error("Ошибка показа рекламы:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isPremium) return;
+    const timer = setTimeout(() => showAd("daily"), 3000);
+    return () => clearTimeout(timer);
+  }, [isPremium]);
+
   return {
-    showActionAd: () => showAd('action'),
-  }
-}
+    showActionAd: () => showAd("action"),
+  };
+};

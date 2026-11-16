@@ -1,39 +1,46 @@
-import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react'
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-} from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { BannerView, BannerAdSize } from 'yandex-mobile-ads'
-import { useDashboard } from '../hooks/useDashboard'
-import { usePremiumStore } from '../store/usePremiumStore'
-import { UndoSnackbar } from '../components/ui/UndoSnackbar'
-import { SwipeableCard } from '../components/ui/SwipeableCard'
-import { formatPrice } from '../utils/formatUtils'
+  Dimensions, // 🚀 Добавлен для ширины экрана
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { BannerView, BannerAdSize } from "yandex-mobile-ads"; // 🚀 Добавлен BannerAdSize
+import { useDashboard } from "../hooks/useDashboard";
+import { usePremiumStore } from "../store/usePremiumStore";
+import { UndoSnackbar } from "../components/ui/UndoSnackbar";
+import { SwipeableCard } from "../components/ui/SwipeableCard";
+import { formatPrice } from "../utils/formatUtils";
 import {
   SPACING,
   TYPOGRAPHY,
   BORDER_RADIUS,
   SHADOWS,
   ThemeColors,
-} from '../theme'
-import { useTheme } from '../theme/ThemeContext'
-import { Subscription } from '../types'
-import { useSubscriptionStore } from '../store/useSubscriptionStore'
+} from "../theme";
+import { useTheme } from "../theme/ThemeContext";
+import { Subscription } from "../types";
+import { useSubscriptionStore } from "../store/useSubscriptionStore";
 
 interface MainScreenProps {
-  onAddPress: () => void
-  onOpenSettings: () => void
-  onOpenDetails: (id: string) => void
-  onOpenStatistics: () => void
-  onOpenCalendar: () => void
-  onShowAd: () => void // 🚀 Добавлен пропс для рекламы
+  onAddPress: () => void;
+  onOpenSettings: () => void;
+  onOpenDetails: (id: string) => void;
+  onOpenStatistics: () => void;
+  onOpenCalendar: () => void;
+  onShowAd: () => void;
 }
 
-const UNDO_TIMEOUT_MS = 5000
+const UNDO_TIMEOUT_MS = 5000;
 
 export const MainScreen: React.FC<MainScreenProps> = ({
   onAddPress,
@@ -43,9 +50,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   onOpenCalendar,
   onShowAd,
 }) => {
-  const { colors } = useTheme()
-  const styles = useMemo(() => createStyles(colors), [colors])
-  const { isPremium } = usePremiumStore()
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isPremium } = usePremiumStore();
 
   const {
     subscriptions,
@@ -53,53 +60,66 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     totalMonthly,
     totalWithTrials,
     totalYearly,
-  } = useDashboard()
+  } = useDashboard();
 
-  const { addSubscriptionAndReturn } = useSubscriptionStore()
+  const { addSubscriptionAndReturn } = useSubscriptionStore();
 
-  const [lastDeleted, setLastDeleted] = useState<Subscription | null>(null)
-  const [lastDeletedIndex, setLastDeletedIndex] = useState<number>(-1)
-  const [showUndo, setShowUndo] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [lastDeleted, setLastDeleted] = useState<Subscription | null>(null);
+  const [lastDeletedIndex, setLastDeletedIndex] = useState<number>(-1);
+  const [showUndo, setShowUndo] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [openCardId, setOpenCardId] = useState<string | null>(null)
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
+
+  // 🚀 Стейт для размера баннера
+  const [adSize, setAdSize] = useState<BannerAdSize | null>(null);
+
+  useEffect(() => {
+    // 🚀 Асинхронно создаем размер баннера (Sticky-баннер под ширину экрана)
+    BannerAdSize.stickySize(Dimensions.get("window").width)
+      .then((size) => {
+        setAdSize(size);
+      })
+      .catch((err) => {
+        console.error("❌ Ошибка создания размера баннера:", err);
+      });
+  }, []);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [])
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleDelete = useCallback(
     (id: string) => {
-      const sub = subscriptions.find((s) => s.id === id)
-      if (!sub) return
+      const sub = subscriptions.find((s) => s.id === id);
+      if (!sub) return;
 
-      if (openCardId === id) setOpenCardId(null)
+      if (openCardId === id) setOpenCardId(null);
 
-      const currentIndex = subscriptions.findIndex((s) => s.id === id)
-      setLastDeletedIndex(currentIndex)
-      setLastDeleted(sub)
-      removeSubscription(id)
-      setShowUndo(true)
+      const currentIndex = subscriptions.findIndex((s) => s.id === id);
+      setLastDeletedIndex(currentIndex);
+      setLastDeleted(sub);
+      removeSubscription(id);
+      setShowUndo(true);
 
-      // 🚀 Вызываем показ рекламы при удалении
-      onShowAd()
+      onShowAd(); // 🚀 Вызов межстраничной рекламы
 
-      if (timerRef.current) clearTimeout(timerRef.current)
+      if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
-        setShowUndo(false)
-      }, UNDO_TIMEOUT_MS)
+        setShowUndo(false);
+      }, UNDO_TIMEOUT_MS);
     },
     [removeSubscription, subscriptions, openCardId, onShowAd],
-  )
+  );
 
   const handleUndo = useCallback(() => {
-    if (!lastDeleted) return
-    addSubscriptionAndReturn(lastDeleted, lastDeletedIndex)
-    setShowUndo(false)
-    if (timerRef.current) clearTimeout(timerRef.current)
-  }, [lastDeleted, lastDeletedIndex, addSubscriptionAndReturn])
+    if (!lastDeleted) return;
+    addSubscriptionAndReturn(lastDeleted, lastDeletedIndex);
+    setShowUndo(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, [lastDeleted, lastDeletedIndex, addSubscriptionAndReturn]);
 
   const renderItem = useCallback(
     ({ item }: { item: Subscription }) => (
@@ -113,7 +133,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       />
     ),
     [onOpenDetails, handleDelete, colors, openCardId],
-  )
+  );
 
   return (
     <View style={styles.container}>
@@ -124,7 +144,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             style={[styles.iconBtn, { backgroundColor: colors.card }]}
           >
             <Ionicons
-              name='settings-outline'
+              name="settings-outline"
               size={24}
               color={colors.primary}
             />
@@ -135,13 +155,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           <Text style={styles.headerTitle}>Мои подписки</Text>
           {isPremium && (
             <View style={styles.proBadge}>
-              <Ionicons name='star' size={10} color='#FFF' />
+              <Ionicons name="star" size={10} color="#FFF" />
               <Text style={styles.proText}>PRO</Text>
             </View>
           )}
         </View>
 
-        <View style={[styles.headerSide, { alignItems: 'flex-end' }]}>
+        <View style={[styles.headerSide, { alignItems: "flex-end" }]}>
           <TouchableOpacity onPress={onAddPress} style={styles.iconBtnPrimary}>
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
@@ -157,9 +177,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           <Text style={styles.totalLabel}>Расходы в месяц</Text>
           <View style={styles.chartIconBg}>
             <Ionicons
-              name='pie-chart'
+              name="pie-chart"
               size={20}
-              color='rgba(255,255,255,0.8)'
+              color="rgba(255,255,255,0.8)"
             />
           </View>
         </View>
@@ -177,7 +197,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         </Text>
 
         {totalWithTrials > totalMonthly && (
-          <View style={{ width: '100%' }}>
+          <View style={{ width: "100%" }}>
             <View style={styles.trialDivider} />
             <Text style={styles.trialHint} numberOfLines={2}>
               С учетом оплаты после триалов: {formatPrice(totalWithTrials)}/мес
@@ -192,11 +212,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         activeOpacity={0.7}
       >
         <View style={styles.calendarIconBg}>
-          <Ionicons name='calendar-outline' size={20} color={colors.primary} />
+          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
         </View>
         <Text style={styles.calendarBtnText}>Календарь списаний</Text>
         <Ionicons
-          name='chevron-forward'
+          name="chevron-forward"
           size={20}
           color={colors.textSecondary}
         />
@@ -223,61 +243,64 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           showsVerticalScrollIndicator={false}
           onScrollBeginDrag={() => setOpenCardId(null)}
           bounces={false}
-          overScrollMode='never'
+          overScrollMode="never"
         />
       )}
 
-      {!isPremium && (
+      {/* 🚀 Рекламный баннер (рендерится только если размер получен) */}
+      {!isPremium && adSize && (
         <View style={styles.adContainer}>
           <BannerView
-            adUnitId='R-M-20431707-1'
-            size={BannerAdSize.BANNER_320x50}
-            onLoad={() => console.log('✅ Баннер загружен')}
-            onError={(error) => console.log('❌ Ошибка баннера:', error)}
+            size={adSize}
+            adRequest={{ adUnitId: "R-M-20431707-1" }}
+            onAdLoaded={() => console.log("✅ Баннер загружен")}
+            onAdFailedToLoad={(error) =>
+              console.log("❌ Ошибка баннера:", error)
+            }
           />
         </View>
       )}
 
       <UndoSnackbar
-        key={lastDeleted?.id || 'empty'}
+        key={lastDeleted?.id || "empty"}
         visible={showUndo}
         onUndo={handleUndo}
         duration={UNDO_TIMEOUT_MS}
       />
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
       height: 56,
       marginBottom: SPACING.md,
     },
-    headerSide: { width: 44, justifyContent: 'center' },
+    headerSide: { width: 44, justifyContent: "center" },
 
     headerTitleContainer: {
       flex: 1,
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
       gap: 6,
     },
     headerTitle: {
-      textAlign: 'center',
+      textAlign: "center",
       ...TYPOGRAPHY.title,
       color: colors.textMain,
       fontSize: 22,
     },
     proBadge: {
-      backgroundColor: '#F59E0B',
-      flexDirection: 'row',
-      alignItems: 'center',
+      backgroundColor: "#F59E0B",
+      flexDirection: "row",
+      alignItems: "center",
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
@@ -285,30 +308,30 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: 2,
     },
     proText: {
-      color: '#FFF',
+      color: "#FFF",
       fontSize: 10,
-      fontWeight: 'bold',
+      fontWeight: "bold",
     },
 
     iconBtn: {
       width: 44,
       height: 44,
       borderRadius: 22,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     iconBtnPrimary: {
       width: 44,
       height: 44,
       borderRadius: 22,
       backgroundColor: colors.primary,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     addButtonText: {
       color: colors.white,
       fontSize: 28,
-      fontWeight: '300',
+      fontWeight: "300",
       marginTop: -2,
     },
     totalCard: {
@@ -320,43 +343,43 @@ const createStyles = (colors: ThemeColors) =>
       ...SHADOWS.medium,
     },
     cardHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginBottom: SPACING.xs,
     },
     chartIconBg: {
       width: 32,
       height: 32,
       borderRadius: 16,
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
     },
-    totalLabel: { ...TYPOGRAPHY.caption, color: 'rgba(255,255,255,0.8)' },
+    totalLabel: { ...TYPOGRAPHY.caption, color: "rgba(255,255,255,0.8)" },
     totalAmount: {
       fontSize: 36,
-      fontWeight: '800',
+      fontWeight: "800",
       color: colors.white,
       marginBottom: SPACING.sm,
     },
-    totalYearly: { ...TYPOGRAPHY.body, color: 'rgba(255,255,255,0.9)' },
+    totalYearly: { ...TYPOGRAPHY.body, color: "rgba(255,255,255,0.9)" },
     trialDivider: {
       height: 1,
-      backgroundColor: 'rgba(255,255,255,0.2)',
+      backgroundColor: "rgba(255,255,255,0.2)",
       marginVertical: SPACING.sm,
-      width: '100%',
+      width: "100%",
     },
     trialHint: {
       ...TYPOGRAPHY.caption,
-      color: 'rgba(255,255,255,0.7)',
+      color: "rgba(255,255,255,0.7)",
       marginTop: SPACING.xs,
-      fontStyle: 'italic',
+      fontStyle: "italic",
     },
 
     calendarBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       backgroundColor: colors.card,
       marginHorizontal: SPACING.lg,
       marginBottom: SPACING.md,
@@ -371,21 +394,21 @@ const createStyles = (colors: ThemeColors) =>
       height: 36,
       borderRadius: 10,
       backgroundColor: `${colors.primary}15`,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       marginRight: SPACING.sm,
     },
     calendarBtnText: {
       flex: 1,
       ...TYPOGRAPHY.body,
       color: colors.textMain,
-      fontWeight: '500',
+      fontWeight: "500",
     },
 
     emptyState: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       padding: SPACING.xl,
     },
     emptyText: {
@@ -403,9 +426,9 @@ const createStyles = (colors: ThemeColors) =>
     testButtonText: { ...TYPOGRAPHY.button, color: colors.primary },
 
     adContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       paddingVertical: 8,
       backgroundColor: colors.background,
     },
-  })
+  });
