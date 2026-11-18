@@ -11,10 +11,10 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Dimensions, // 🚀 Добавлен для ширины экрана
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { BannerView, BannerAdSize } from "yandex-mobile-ads"; // 🚀 Добавлен BannerAdSize
+import { BannerView, BannerAdSize } from "yandex-mobile-ads";
 import { useDashboard } from "../hooks/useDashboard";
 import { usePremiumStore } from "../store/usePremiumStore";
 import { UndoSnackbar } from "../components/ui/UndoSnackbar";
@@ -70,19 +70,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [openCardId, setOpenCardId] = useState<string | null>(null);
-
-  // 🚀 Стейт для размера баннера
   const [adSize, setAdSize] = useState<BannerAdSize | null>(null);
 
   useEffect(() => {
-    // 🚀 Асинхронно создаем размер баннера (Sticky-баннер под ширину экрана)
     BannerAdSize.stickySize(Dimensions.get("window").width)
-      .then((size) => {
-        setAdSize(size);
-      })
-      .catch((err) => {
-        console.error("❌ Ошибка создания размера баннера:", err);
-      });
+      .then((size) => setAdSize(size))
+      .catch((err) => console.error("❌ Ошибка размера баннера:", err));
   }, []);
 
   useEffect(() => {
@@ -95,21 +88,17 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     (id: string) => {
       const sub = subscriptions.find((s) => s.id === id);
       if (!sub) return;
-
       if (openCardId === id) setOpenCardId(null);
-
       const currentIndex = subscriptions.findIndex((s) => s.id === id);
       setLastDeletedIndex(currentIndex);
       setLastDeleted(sub);
       removeSubscription(id);
       setShowUndo(true);
 
-      onShowAd(); // 🚀 Вызов межстраничной рекламы
+      onShowAd(); // Реклама при удалении
 
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        setShowUndo(false);
-      }, UNDO_TIMEOUT_MS);
+      timerRef.current = setTimeout(() => setShowUndo(false), UNDO_TIMEOUT_MS);
     },
     [removeSubscription, subscriptions, openCardId, onShowAd],
   );
@@ -150,7 +139,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             />
           </TouchableOpacity>
         </View>
-
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Мои подписки</Text>
           {isPremium && (
@@ -160,7 +148,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             </View>
           )}
         </View>
-
         <View style={[styles.headerSide, { alignItems: "flex-end" }]}>
           <TouchableOpacity onPress={onAddPress} style={styles.iconBtnPrimary}>
             <Text style={styles.addButtonText}>+</Text>
@@ -178,12 +165,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           <View style={styles.chartIconBg}>
             <Ionicons
               name="pie-chart"
-              size={20}
+              size={18}
               color="rgba(255,255,255,0.8)"
             />
           </View>
         </View>
-
         <Text
           style={styles.totalAmount}
           numberOfLines={1}
@@ -191,11 +177,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         >
           {formatPrice(totalMonthly)}
         </Text>
-
         <Text style={styles.totalYearly} numberOfLines={2}>
           Это {formatPrice(totalYearly)} в год
         </Text>
-
         {totalWithTrials > totalMonthly && (
           <View style={{ width: "100%" }}>
             <View style={styles.trialDivider} />
@@ -212,12 +196,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         activeOpacity={0.7}
       >
         <View style={styles.calendarIconBg}>
-          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
         </View>
         <Text style={styles.calendarBtnText}>Календарь списаний</Text>
         <Ionicons
           name="chevron-forward"
-          size={20}
+          size={18}
           color={colors.textSecondary}
         />
       </TouchableOpacity>
@@ -247,7 +231,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         />
       )}
 
-      {/* 🚀 Рекламный баннер (рендерится только если размер получен) */}
       {!isPremium && adSize && (
         <View style={styles.adContainer}>
           <BannerView
@@ -280,10 +263,9 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
       paddingHorizontal: SPACING.lg,
       height: 56,
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm,
     },
     headerSide: { width: 44, justifyContent: "center" },
-
     headerTitleContainer: {
       flex: 1,
       flexDirection: "row",
@@ -307,11 +289,7 @@ const createStyles = (colors: ThemeColors) =>
       gap: 2,
       marginTop: 2,
     },
-    proText: {
-      color: "#FFF",
-      fontSize: 10,
-      fontWeight: "bold",
-    },
+    proText: { color: "#FFF", fontSize: 10, fontWeight: "bold" },
 
     iconBtn: {
       width: 44,
@@ -334,46 +312,57 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "300",
       marginTop: -2,
     },
+
     totalCard: {
       backgroundColor: colors.primary,
       borderRadius: BORDER_RADIUS.xl,
-      padding: SPACING.lg,
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.lg,
       marginHorizontal: SPACING.lg,
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm,
       ...SHADOWS.medium,
     },
     cardHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: SPACING.xs,
+      marginBottom: 2,
     },
     chartIconBg: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
       backgroundColor: "rgba(255,255,255,0.2)",
       justifyContent: "center",
       alignItems: "center",
     },
     totalLabel: { ...TYPOGRAPHY.caption, color: "rgba(255,255,255,0.8)" },
     totalAmount: {
-      fontSize: 36,
+      fontSize: 32,
       fontWeight: "800",
       color: colors.white,
-      marginBottom: SPACING.sm,
+      marginBottom: 2,
     },
-    totalYearly: { ...TYPOGRAPHY.body, color: "rgba(255,255,255,0.9)" },
+
+    // 🚀 УВЕЛИЧИЛИ ШРИФТ ГОДОВОЙ СУММЫ (с 13 до 15)
+    totalYearly: {
+      ...TYPOGRAPHY.body,
+      color: "rgba(255,255,255,0.9)",
+      fontSize: 15,
+    },
+
     trialDivider: {
       height: 1,
       backgroundColor: "rgba(255,255,255,0.2)",
-      marginVertical: SPACING.sm,
+      marginVertical: SPACING.xs,
       width: "100%",
     },
+
+    // 🚀 УВЕЛИЧИЛИ ШРИФТ ПОДСКАЗКИ ПРО ТРИАЛЫ (с 11 до 13)
     trialHint: {
       ...TYPOGRAPHY.caption,
-      color: "rgba(255,255,255,0.7)",
-      marginTop: SPACING.xs,
+      color: "rgba(255,255,255,0.8)",
+      fontSize: 13,
       fontStyle: "italic",
     },
 
@@ -382,17 +371,18 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
       backgroundColor: colors.card,
       marginHorizontal: SPACING.lg,
-      marginBottom: SPACING.md,
-      padding: SPACING.md,
+      marginBottom: SPACING.sm,
+      paddingVertical: 8,
+      paddingHorizontal: SPACING.md,
       borderRadius: BORDER_RADIUS.lg,
       borderWidth: 1,
       borderColor: colors.border,
       ...SHADOWS.soft,
     },
     calendarIconBg: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
+      width: 32,
+      height: 32,
+      borderRadius: 8,
       backgroundColor: `${colors.primary}15`,
       justifyContent: "center",
       alignItems: "center",
@@ -403,6 +393,7 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.body,
       color: colors.textMain,
       fontWeight: "500",
+      fontSize: 15,
     },
 
     emptyState: {
@@ -428,7 +419,7 @@ const createStyles = (colors: ThemeColors) =>
     adContainer: {
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 8,
+      paddingVertical: 4,
       backgroundColor: colors.background,
     },
   });

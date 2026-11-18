@@ -1,13 +1,7 @@
 import { useMemo } from "react";
 import { useSubscriptionStore } from "../store/useSubscriptionStore";
+import { useSettingsStore } from "../store/useSettingsStore";
 import { CATEGORIES, Category, Subscription } from "../types";
-
-const getActualPrice = (sub: Subscription) => {
-  if (sub.status === "active" && sub.price === 0 && sub.regularPrice) {
-    return sub.regularPrice;
-  }
-  return sub.price;
-};
 
 export interface CategoryStat {
   category: Category;
@@ -20,56 +14,48 @@ export interface CategoryStat {
 
 export const useStatistics = () => {
   const { subscriptions } = useSubscriptionStore();
+  const { usdRate, eurRate } = useSettingsStore();
 
   const stats = useMemo(() => {
+    const toRUB = (sub: Subscription) => {
+      const price =
+        sub.status === "active" && sub.price === 0 && sub.regularPrice
+          ? sub.regularPrice
+          : sub.price;
+
+      let rubPrice = price;
+      if (sub.currency === "USD") rubPrice = price * usdRate;
+      if (sub.currency === "EUR") rubPrice = price * eurRate;
+
+      return sub.billingCycle === "yearly" ? rubPrice / 12 : rubPrice;
+    };
+
     // 1. Текущие траты
     const activeSubs = subscriptions.filter(
       (sub) =>
-        sub.status === "active" ||
-        (sub.status === "trial" && getActualPrice(sub) > 0),
+        sub.status === "active" || (sub.status === "trial" && sub.price > 0),
     );
 
-    const totalMonthly = activeSubs.reduce((sum, sub) => {
-      const actualPrice = getActualPrice(sub);
-      const monthlyCost =
-        sub.billingCycle === "yearly" ? actualPrice / 12 : actualPrice;
-      return sum + monthlyCost;
-    }, 0);
-
-    // 🚀 Топ-3 самых дорогих подписок
-    const topSubscriptions = [...activeSubs]
-      .sort((a, b) => {
-        const priceA =
-          a.billingCycle === "yearly"
-            ? getActualPrice(a) / 12
-            : getActualPrice(a);
-        const priceB =
-          b.billingCycle === "yearly"
-            ? getActualPrice(b) / 12
-            : getActualPrice(b);
-        return priceB - priceA;
-      })
-      .slice(0, 3);
+    const totalMonthly = activeSubs.reduce((sum, sub) => sum + toRUB(sub), 0);
+    const totalYearly = totalMonthly * 12; // 🚀 Вернули годовую сумму
 
     // 2. Будущие траты
     const futureTotalMonthly = subscriptions.reduce((sum, sub) => {
-      const priceToUse =
-        sub.status === "trial" && sub.regularPrice
-          ? sub.regularPrice
-          : getActualPrice(sub);
-      const monthlyCost =
-        sub.billingCycle === "yearly" ? priceToUse / 12 : priceToUse;
-      return sum + monthlyCost;
+      const futureSub = { ...sub, price: sub.regularPrice || sub.price };
+      return sum + toRUB(futureSub);
     }, 0);
 
     const difference = futureTotalMonthly - totalMonthly;
 
-    // 3. Группировка по категориям
+    // 3. Топ-3 подписок 🚀
+    const topSubscriptions = [...activeSubs]
+      .sort((a, b) => toRUB(b) - toRUB(a))
+      .slice(0, 3);
+
+    // 4. Группировка по категориям
     const categoryTotals = activeSubs.reduce(
       (acc, sub) => {
-        const actualPrice = getActualPrice(sub);
-        const monthlyCost =
-          sub.billingCycle === "yearly" ? actualPrice / 12 : actualPrice;
+        const monthlyCost = toRUB(sub);
         acc[sub.category] = (acc[sub.category] || 0) + monthlyCost;
         return acc;
       },
@@ -94,13 +80,13 @@ export const useStatistics = () => {
 
     return {
       totalMonthly: Math.round(totalMonthly),
-      totalYearly: Math.round(totalMonthly * 12), // 🚀 Добавили годовую сумму
+      totalYearly: Math.round(totalYearly),
       futureTotalMonthly: Math.round(futureTotalMonthly),
       difference: Math.round(difference),
-      topSubscriptions, // 🚀 Возвращаем топ
+      topSubscriptions, // 🚀 Вернули топ
       result,
     };
-  }, [subscriptions]);
+  }, [subscriptions, usdRate, eurRate]);
 
   return stats;
 };

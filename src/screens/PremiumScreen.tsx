@@ -10,6 +10,8 @@ import {
   TextInput,
   ActivityIndicator,
   AppState,
+  Platform,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
@@ -40,7 +42,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // 🚀 Проверяем статус при возвращении в приложение после оплаты
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
@@ -93,7 +94,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
     }
   };
 
-  // Для тестов: сброс премиума
   const handleResetPremium = () => {
     Alert.alert(
       "Сброс Премиума",
@@ -159,16 +159,17 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
             </View>
           </View>
 
+          {/* 🚀 Заменили "Премиум-статус" на "Календарь списаний" */}
           <View style={styles.featureItem}>
             <View
-              style={[styles.featureIcon, { backgroundColor: `#F59E0B15` }]}
+              style={[styles.featureIcon, { backgroundColor: `#10B98115` }]}
             >
-              <Ionicons name="ribbon" size={22} color="#F59E0B" />
+              <Ionicons name="calendar" size={22} color="#10B981" />
             </View>
             <View style={styles.featureTextContainer}>
-              <Text style={styles.featureTitle}>Премиум-статус</Text>
+              <Text style={styles.featureTitle}>Календарь списаний</Text>
               <Text style={styles.featureDesc}>
-                Специальный золотой значок в настройках приложения.
+                Наглядный график всех ваших платежей на каждый день.
               </Text>
             </View>
           </View>
@@ -241,25 +242,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
               </Text>
             </View>
           </View>
-
-          <View style={styles.featureItem}>
-            <View
-              style={[styles.featureIcon, { backgroundColor: `#10B98115` }]}
-            >
-              <Ionicons name="cloud-upload" size={22} color="#10B981" />
-            </View>
-            <View style={styles.featureTextContainer}>
-              <View style={styles.featureTitleRow}>
-                <Text style={styles.featureTitle}>Облачный бэкап</Text>
-                <View style={styles.soonBadge}>
-                  <Text style={styles.soonText}>Скоро</Text>
-                </View>
-              </View>
-              <Text style={styles.featureDesc}>
-                Восстановление всех данных при смене телефона.
-              </Text>
-            </View>
-          </View>
         </View>
 
         {isPremium && (
@@ -288,18 +270,13 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
         </Text>
       </View>
 
-      {/* 🚀 Модалка ввода Email */}
-      {/* 🚀 Модалка ввода Email */}
       <Modal visible={showEmailModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* 🚀 Новый заголовок */}
             <Text style={styles.modalTitle}>Завершение покупки</Text>
-
-            {/* 🚀 Новое описание */}
             <Text style={styles.modalDesc}>
               Укажите свой Email. Он нужен для привязки покупки к вам и
-              восстановления доступа, если вы смените телефон. Никакого спама.
+              восстановления доступа, если вы смените телефон.
             </Text>
 
             <TextInput
@@ -398,7 +375,6 @@ const createStyles = (colors: ThemeColors) =>
       lineHeight: 22,
       marginBottom: SPACING.md,
     },
-
     priceBadge: {
       backgroundColor: `${colors.primary}15`,
       paddingHorizontal: SPACING.lg,
@@ -422,7 +398,6 @@ const createStyles = (colors: ThemeColors) =>
       textTransform: "uppercase",
       marginBottom: SPACING.md,
     },
-
     featuresList: { gap: SPACING.md },
     featureItem: {
       flexDirection: "row",
@@ -437,7 +412,6 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
     },
     featureTextContainer: { flex: 1, paddingTop: 2 },
-
     featureTitleRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -507,7 +481,6 @@ const createStyles = (colors: ThemeColors) =>
       textAlign: "center",
     },
 
-    // Стили модалки
     modalOverlay: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.5)",

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -11,42 +11,42 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-} from 'react-native'
-import Constants from 'expo-constants'
-import DateTimePicker from '@react-native-community/datetimepicker'
-import { Ionicons } from '@expo/vector-icons'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useTheme } from '../theme/ThemeContext'
-import { useSettingsStore } from '../store/useSettingsStore'
-import { useSecurityStore } from '../store/useSecurityStore'
-import { useBiometricLock } from '../hooks/useBiometricLock'
-import { usePremiumStore } from '../store/usePremiumStore'
-import { fetchAndSaveRates } from '../services/currencyService' // 🚀 Импорт сервиса
-import { SettingsRow } from '../components/ui/SettingsRow'
-import { HeaderBackButton } from '../components/ui/HeaderBackButton'
-import { SPACING, TYPOGRAPHY, ThemeColors } from '../theme'
+} from "react-native";
+import Constants from "expo-constants";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTheme } from "../theme/ThemeContext";
+import { useSettingsStore } from "../store/useSettingsStore";
+import { useSecurityStore } from "../store/useSecurityStore";
+import { useBiometricLock } from "../hooks/useBiometricLock";
+import { usePremiumStore } from "../store/usePremiumStore";
+import { fetchAndSaveRates } from "../services/currencyService";
+import { SettingsRow } from "../components/ui/SettingsRow";
+import { HeaderBackButton } from "../components/ui/HeaderBackButton";
+import { SPACING, TYPOGRAPHY, ThemeColors } from "../theme";
 
-const API_URL = 'https://sub-stop-server-nikolyovin.msk1.amvera.tech'
+const API_URL = "https://sub-stop-server-nikolyovin.msk1.amvera.tech";
 
 interface SettingsScreenProps {
-  onBack: () => void
-  onOpenPremium: () => void
+  onBack: () => void;
+  onOpenPremium: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onBack,
   onOpenPremium,
 }) => {
-  const { theme, toggleTheme, colors } = useTheme()
-  const [showTimePicker, setShowTimePicker] = useState(false)
+  const { theme, toggleTheme, colors } = useTheme();
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Стейты для модалки восстановления
-  const [showRestoreModal, setShowRestoreModal] = useState(false)
-  const [restoreEmail, setRestoreEmail] = useState('')
-  const [isRestoring, setIsRestoring] = useState(false)
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreEmail, setRestoreEmail] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
 
-  // 🚀 Стейт для обновления курсов
-  const [isUpdatingRates, setIsUpdatingRates] = useState(false)
+  // Стейт для обновления курсов
+  const [isUpdatingRates, setIsUpdatingRates] = useState(false);
 
   const {
     notifyTrials,
@@ -58,103 +58,100 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setReminderTime,
     usdRate,
     eurRate,
-  } = useSettingsStore()
+  } = useSettingsStore();
 
-  const { isLockEnabled } = useSecurityStore()
+  const { isLockEnabled } = useSecurityStore();
   const { isBiometricAvailable, toggleLock, isCheckingHardware } =
-    useBiometricLock()
-  const { isPremium, setPremium, getDeviceId } = usePremiumStore()
+    useBiometricLock();
+  const { isPremium, setPremium, getDeviceId } = usePremiumStore();
 
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const isAnyNotificationEnabled = notifyTrials || notifyRegular
+  const isAnyNotificationEnabled = notifyTrials || notifyRegular;
 
-  const reminderDate = new Date()
-  reminderDate.setHours(reminderHour, reminderMinute)
+  const reminderDate = new Date();
+  reminderDate.setHours(reminderHour, reminderMinute);
 
   const onTimeChange = (event: any, date?: Date) => {
-    if (Platform.OS === 'android') setShowTimePicker(false)
-    if (date) setReminderTime(date.getHours(), date.getMinutes())
-  }
+    if (Platform.OS === "android") setShowTimePicker(false);
+    if (date) setReminderTime(date.getHours(), date.getMinutes());
+  };
 
-  // 🚀 Функция ручного обновления курсов
   const handleUpdateRates = async () => {
-    setIsUpdatingRates(true)
-    const success = await fetchAndSaveRates()
-    setIsUpdatingRates(false)
+    setIsUpdatingRates(true);
+    const success = await fetchAndSaveRates();
+    setIsUpdatingRates(false);
 
     if (success) {
-      Alert.alert('Успех', 'Курсы валют обновлены.')
+      Alert.alert("Успех", "Курсы валют обновлены.");
     } else {
-      Alert.alert('Ошибка', 'Не удалось обновить курсы. Проверьте интернет.')
+      Alert.alert("Ошибка", "Не удалось обновить курсы. Проверьте интернет.");
     }
-  }
+  };
 
-  // 🚀 Восстановление покупки
   const handleRestore = async () => {
-    if (!restoreEmail.includes('@')) {
-      Alert.alert('Ошибка', 'Введите корректный Email')
-      return
+    if (!restoreEmail.includes("@")) {
+      Alert.alert("Ошибка", "Введите корректный Email");
+      return;
     }
-    setIsRestoring(true)
+    setIsRestoring(true);
     try {
       const response = await fetch(`${API_URL}/api/restore-premium`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: restoreEmail,
           new_device_id: getDeviceId(),
         }),
-      })
-      const data = await response.json()
+      });
+      const data = await response.json();
 
       if (data.isPremium) {
-        setPremium(true)
-        setShowRestoreModal(false)
-        Alert.alert('Успех', 'Покупка восстановлена! Премиум снова активен.')
+        setPremium(true);
+        setShowRestoreModal(false);
+        Alert.alert("Успех", "Покупка восстановлена! Премиум снова активен.");
       } else {
-        Alert.alert('Не найдено', 'Покупок с таким email не найдено.')
+        Alert.alert("Не найдено", "Покупок с таким email не найдено.");
       }
     } catch (error) {
-      Alert.alert('Ошибка', 'Не удалось связаться с сервером.')
+      Alert.alert("Ошибка", "Не удалось связаться с сервером.");
     } finally {
-      setIsRestoring(false)
+      setIsRestoring(false);
     }
-  }
+  };
 
-  // 🚀 Удаление данных
   const handleDeleteData = () => {
     Alert.alert(
-      'Удалить все данные?',
-      'Это действие навсегда удалит ваши подписки и отвяжет Премиум-статус.',
+      "Удалить все данные?",
+      "Это действие навсегда удалит ваши подписки и отвяжет Премиум-статус.",
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: "Отмена", style: "cancel" },
         {
-          text: 'Удалить',
-          style: 'destructive',
+          text: "Удалить",
+          style: "destructive",
           onPress: async () => {
             try {
               await fetch(`${API_URL}/api/delete-data`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ device_id: getDeviceId() }),
-              })
+              });
 
-              await AsyncStorage.clear()
-              setPremium(false)
+              await AsyncStorage.clear();
+              setPremium(false);
               Alert.alert(
-                'Готово',
-                'Все данные удалены. Приложение будет перезапущено.',
-              )
-              onBack()
+                "Готово",
+                "Все данные удалены. Приложение будет перезапущено.",
+              );
+              onBack();
             } catch (error) {
-              Alert.alert('Ошибка', 'Не удалось удалить данные.')
+              Alert.alert("Ошибка", "Не удалось удалить данные.");
             }
           },
         },
       ],
-    )
-  }
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -168,20 +165,20 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         contentContainerStyle={[styles.content, { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
         bounces={false}
-        overScrollMode='never'
+        overScrollMode="never"
       >
         <Text style={styles.sectionTitle}>Основные</Text>
         <SettingsRow
-          icon='moon-outline'
-          title='Темная тема'
-          value={theme === 'dark'}
+          icon="moon-outline"
+          title="Темная тема"
+          value={theme === "dark"}
           onToggle={toggleTheme}
         />
 
         {(isBiometricAvailable || isCheckingHardware) && (
           <SettingsRow
-            icon='finger-print-outline'
-            title='Вход по биометрии'
+            icon="finger-print-outline"
+            title="Вход по биометрии"
             value={isLockEnabled}
             onToggle={() => toggleLock(!isLockEnabled)}
             isLoading={isCheckingHardware}
@@ -190,14 +187,14 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
         <Text style={styles.sectionTitle}>Уведомления</Text>
         <SettingsRow
-          icon='time-outline'
-          title='Обычные подписки'
+          icon="time-outline"
+          title="Обычные подписки"
           value={notifyRegular}
           onToggle={toggleNotifyRegular}
         />
         <SettingsRow
-          icon='alert-circle-outline'
-          title='Пробные периоды (Триалы)'
+          icon="alert-circle-outline"
+          title="Пробные периоды (Триалы)"
           value={notifyTrials}
           onToggle={toggleNotifyTrials}
         />
@@ -212,7 +209,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         >
           <View style={styles.left}>
             <Ionicons
-              name='time-outline'
+              name="time-outline"
               size={20}
               color={
                 !isAnyNotificationEnabled
@@ -235,22 +232,21 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               !isAnyNotificationEnabled && { color: colors.textSecondary },
             ]}
           >
-            {reminderHour.toString().padStart(2, '0')}:
-            {reminderMinute.toString().padStart(2, '0')}
+            {reminderHour.toString().padStart(2, "0")}:
+            {reminderMinute.toString().padStart(2, "0")}
           </Text>
         </TouchableOpacity>
 
         {showTimePicker && (
           <DateTimePicker
             value={reminderDate}
-            mode='time'
-            display='default'
+            mode="time"
+            display="default"
             onValueChange={onTimeChange}
             onDismiss={() => setShowTimePicker(false)}
           />
         )}
 
-        {/* 🚀 Блок с курсами и кнопкой обновления */}
         <View style={styles.rateHeader}>
           <Text
             style={[styles.sectionTitle, { marginTop: 0, marginBottom: 0 }]}
@@ -262,9 +258,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             disabled={isUpdatingRates}
           >
             {isUpdatingRates ? (
-              <ActivityIndicator size='small' color={colors.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <Ionicons name='refresh' size={18} color={colors.primary} />
+              <Ionicons name="refresh" size={18} color={colors.primary} />
             )}
           </TouchableOpacity>
         </View>
@@ -283,9 +279,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
         <Text style={styles.sectionTitle}>Поддержка</Text>
         <SettingsRow
-          icon={isPremium ? 'star' : 'star-outline'}
-          title={isPremium ? 'Премиум активен' : 'Премиум-версия'}
-          iconColor={isPremium ? '#F59E0B' : undefined}
+          icon={isPremium ? "star" : "star-outline"}
+          title={isPremium ? "Премиум активен" : "Премиум-версия"}
+          iconColor={isPremium ? "#F59E0B" : undefined}
           onPress={onOpenPremium}
         />
 
@@ -295,11 +291,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           onPress={() => setShowRestoreModal(true)}
         >
           <View style={styles.left}>
-            <Ionicons name='refresh-outline' size={20} color={colors.primary} />
+            <Ionicons name="refresh-outline" size={20} color={colors.primary} />
             <Text style={styles.timeLabel}>Восстановить покупку</Text>
           </View>
           <Ionicons
-            name='chevron-forward'
+            name="chevron-forward"
             size={20}
             color={colors.textSecondary}
           />
@@ -310,7 +306,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           onPress={handleDeleteData}
         >
           <View style={styles.left}>
-            <Ionicons name='trash-outline' size={20} color={colors.danger} />
+            <Ionicons name="trash-outline" size={20} color={colors.danger} />
             <Text style={[styles.timeLabel, { color: colors.danger }]}>
               Удалить все данные
             </Text>
@@ -319,20 +315,57 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
         <Text style={styles.sectionTitle}>О приложении</Text>
         <SettingsRow
-          icon='shield-checkmark-outline'
-          title='Политика конфиденциальности'
+          icon="shield-checkmark-outline"
+          title="Политика конфиденциальности"
           onPress={() =>
-            Linking.openURL('https://nikolyovin.github.io/sub-stop-privacy/')
+            Linking.openURL("https://nikolyovin.github.io/sub-stop-privacy/")
           }
         />
 
         <Text style={styles.versionText}>
-          Версия {Constants.expoConfig?.version || '1.0.0'}
+          Версия {Constants.expoConfig?.version || "1.0.0"}
         </Text>
+
+        {/* 🚀 ВРЕМЕННАЯ КНОПКА ДЛЯ ТЕСТА СКРИНШОТОВ (Удалить перед релизом!) */}
+        <Text style={styles.sectionTitle}>Для разработчика</Text>
+        <TouchableOpacity
+          style={[
+            styles.timeButton,
+            {
+              borderColor: isPremium ? colors.danger : colors.primary,
+              borderWidth: 1,
+            },
+          ]}
+          onPress={() => {
+            setPremium(!isPremium);
+            Alert.alert(
+              "Режим разработчика",
+              `Премиум ${!isPremium ? "ВКЛЮЧЕН" : "ВЫКЛЮЧЕН"}.\n\nНе забудь выключить его перед релизом!`,
+            );
+          }}
+        >
+          <View style={styles.left}>
+            <Ionicons
+              name={isPremium ? "close-circle" : "checkmark-circle"}
+              size={20}
+              color={isPremium ? colors.danger : colors.primary}
+            />
+            <Text
+              style={[
+                styles.timeLabel,
+                { color: isPremium ? colors.danger : colors.primary },
+              ]}
+            >
+              {isPremium
+                ? "Отключить Премиум (тест)"
+                : "Включить Премиум (тест)"}
+            </Text>
+          </View>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Модалка восстановления покупки */}
-      <Modal visible={showRestoreModal} transparent animationType='fade'>
+      <Modal visible={showRestoreModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Восстановление покупки</Text>
@@ -342,10 +375,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
             <TextInput
               style={styles.input}
-              placeholder='example@mail.com'
+              placeholder="example@mail.com"
               placeholderTextColor={colors.textSecondary}
-              keyboardType='email-address'
-              autoCapitalize='none'
+              keyboardType="email-address"
+              autoCapitalize="none"
               value={restoreEmail}
               onChangeText={setRestoreEmail}
             />
@@ -356,7 +389,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 onPress={() => setShowRestoreModal(false)}
                 disabled={isRestoring}
               >
-                <Text style={{ color: colors.textMain, fontWeight: 'bold' }}>
+                <Text style={{ color: colors.textMain, fontWeight: "bold" }}>
                   Отмена
                 </Text>
               </TouchableOpacity>
@@ -367,9 +400,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 disabled={isRestoring}
               >
                 {isRestoring ? (
-                  <ActivityIndicator color='#fff' />
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                  <Text style={{ color: "#fff", fontWeight: "bold" }}>
                     Восстановить
                   </Text>
                 )}
@@ -379,23 +412,23 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </View>
       </Modal>
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
       height: 56,
       marginBottom: SPACING.xs,
     },
     headerTitle: {
       flex: 1,
-      textAlign: 'center',
+      textAlign: "center",
       ...TYPOGRAPHY.title,
       color: colors.textMain,
       fontSize: 22,
@@ -406,40 +439,38 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.subtitle,
       color: colors.textSecondary,
       fontSize: 13,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       marginTop: SPACING.md,
       marginBottom: SPACING.xs,
     },
 
-    // 🚀 Стили для заголовка курсов с кнопкой
     rateHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginTop: SPACING.md,
       marginBottom: SPACING.xs,
     },
 
     timeButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       backgroundColor: colors.card,
       paddingHorizontal: SPACING.md,
       borderRadius: 16,
       marginBottom: 6,
       height: 56,
     },
-    left: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+    left: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
     timeLabel: { ...TYPOGRAPHY.body, color: colors.textMain, fontSize: 15 },
     timeValue: {
       ...TYPOGRAPHY.body,
       color: colors.primary,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       fontSize: 15,
     },
 
-    // Карточка курсов
     rateContainer: {
       backgroundColor: colors.card,
       borderRadius: 16,
@@ -447,9 +478,9 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: 6,
     },
     rateRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingVertical: 14,
     },
     rateDivider: {
@@ -460,23 +491,22 @@ const createStyles = (colors: ThemeColors) =>
     rateValue: {
       ...TYPOGRAPHY.body,
       color: colors.primary,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       fontSize: 15,
     },
 
     versionText: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      textAlign: 'center',
+      textAlign: "center",
       marginTop: SPACING.md,
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.md,
     },
 
-    // Стили модалки
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      justifyContent: 'center',
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
       padding: SPACING.lg,
     },
     modalContent: {
@@ -489,12 +519,12 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
       fontSize: 20,
       marginBottom: SPACING.xs,
-      textAlign: 'center',
+      textAlign: "center",
     },
     modalDesc: {
       ...TYPOGRAPHY.body,
       color: colors.textSecondary,
-      textAlign: 'center',
+      textAlign: "center",
       marginBottom: SPACING.md,
       fontSize: 14,
     },
@@ -508,12 +538,12 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       marginBottom: SPACING.lg,
     },
-    modalActions: { flexDirection: 'row', gap: SPACING.md },
+    modalActions: { flexDirection: "row", gap: SPACING.md },
     modalBtn: {
       flex: 1,
       paddingVertical: 14,
       borderRadius: 999,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
-  })
+  });

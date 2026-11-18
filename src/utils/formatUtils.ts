@@ -1,4 +1,9 @@
-// Форматирует число в красивую строку с пробелами и знаком рубля
 export const formatPrice = (amount: number): string => {
-  return new Intl.NumberFormat("ru-RU").format(amount) + " ₽";
+  // 🚀 Округляем до целых, чтобы не было копеек
+  const rounded = Math.round(amount);
+  return (
+    new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(
+      rounded,
+    ) + " ₽"
+  );
 };

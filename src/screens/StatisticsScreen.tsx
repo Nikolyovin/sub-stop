@@ -13,6 +13,7 @@ import * as Sharing from "expo-sharing";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import Svg, { Circle } from "react-native-svg";
 import { useStatistics } from "../hooks/useStatistics";
+import { useSettingsStore } from "../store/useSettingsStore"; // 🚀 Добавили для курсов
 import { CategoryProgressBar } from "../components/ui/CategoryProgressBar";
 import { formatPrice } from "../utils/formatUtils";
 import { getBrandData, getBrandBackground } from "../utils/brandUtils";
@@ -30,12 +31,22 @@ interface StatisticsScreenProps {
   onBack: () => void;
 }
 
+// 🚀 Хелпер для символа валюты
+const getCurrencySymbol = (curr: string) => {
+  if (curr === "USD") return "$";
+  if (curr === "EUR") return "€";
+  return "₽";
+};
+
 export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
   onBack,
 }) => {
   const { colors, theme } = useTheme();
   const isDark = theme === "dark";
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // 🚀 Достаем курсы для пересчета в топ-3
+  const { usdRate, eurRate } = useSettingsStore();
 
   const {
     totalMonthly,
@@ -62,11 +73,17 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
         await Sharing.shareAsync(uri);
       }
     } catch (error) {
-      // Если шеринг картинки недоступен, шлем текст
       await Share.share({
         message: `Я отслеживаю подписки в приложении «Стоп-Подписка».\n\nТрачу ${formatPrice(totalMonthly)} в месяц (${formatPrice(totalYearly)} в год). А ты?`,
       });
     }
+  };
+
+  // 🚀 Функция конвертации в рубли для топ-3
+  const convertToRub = (amount: number, currency: string) => {
+    if (currency === "USD") return amount * usdRate;
+    if (currency === "EUR") return amount * eurRate;
+    return amount;
   };
 
   return (
@@ -87,7 +104,6 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
         bounces={false}
         overScrollMode="never"
       >
-        {/* 🚀 КАРТОЧКА ДЛЯ ШЕРИНГА */}
         <ViewShot
           ref={viewShotRef}
           options={{ fileName: "my-stats", format: "png", quality: 1 }}
@@ -157,15 +173,19 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
           </View>
         )}
 
-        {/* 🚀 БЛОК ТОП-3 ПОДПИСОК */}
         {topSubscriptions.length > 0 && (
           <View style={styles.topSection}>
             <Text style={styles.sectionTitle}>Самые дорогие</Text>
             <View style={styles.topList}>
-              {topSubscriptions.map((sub, index) => {
+              {topSubscriptions.map((sub) => {
                 const brand = getBrandData(sub.name);
-                const price =
+                // Берем оригинальную цену (для месяца)
+                const originalPrice =
                   sub.billingCycle === "yearly" ? sub.price / 12 : sub.price;
+                const symbol = getCurrencySymbol(sub.currency);
+                // Считаем цену в рублях для пересчета
+                const rubPrice = convertToRub(originalPrice, sub.currency);
+
                 return (
                   <View key={sub.id} style={styles.topItem}>
                     <View
@@ -179,7 +199,21 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
                     <Text style={styles.topName} numberOfLines={1}>
                       {sub.name}
                     </Text>
-                    <Text style={styles.topPrice}>{formatPrice(price)}</Text>
+
+                    {/* 🚀 Красиво выводим цену в валюте и пересчет в рублях */}
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text style={styles.topPrice}>
+                        {originalPrice % 1 === 0
+                          ? originalPrice
+                          : originalPrice.toFixed(2)}{" "}
+                        {symbol}
+                      </Text>
+                      {sub.currency !== "RUB" && (
+                        <Text style={styles.topRubPrice}>
+                          ≈ {formatPrice(rubPrice)}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 );
               })}
@@ -187,7 +221,6 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
           </View>
         )}
 
-        {/* БЛОК КАТЕГОРИЙ */}
         <Text style={[styles.sectionTitle, { marginTop: SPACING.lg }]}>
           По категориям
         </Text>
@@ -235,9 +268,8 @@ const createStyles = (colors: ThemeColors) =>
     },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
 
-    // Карточка шеринга
     shareableCard: {
-      backgroundColor: "#1E293B", // Всегда темная для шеринга
+      backgroundColor: "#1E293B",
       borderRadius: BORDER_RADIUS.xl,
       paddingVertical: SPACING.xl,
       paddingHorizontal: SPACING.lg,
@@ -282,7 +314,6 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 12,
     },
 
-    // Плашка триалов
     warningCard: {
       backgroundColor: "#FEF3C7",
       borderRadius: BORDER_RADIUS.lg,
@@ -302,7 +333,6 @@ const createStyles = (colors: ThemeColors) =>
     boldText: { fontWeight: "bold", color: "#92400E" },
     plusText: { fontWeight: "bold", color: "#EF4444" },
 
-    // Топ-3
     topSection: { marginBottom: SPACING.md },
     sectionTitle: {
       ...TYPOGRAPHY.subtitle,
@@ -342,6 +372,9 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "500",
     },
     topPrice: { ...TYPOGRAPHY.subtitle, color: colors.primary, fontSize: 15 },
+
+    // 🚀 Новый стиль для пересчета в рублях
+    topRubPrice: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
 
     emptyState: { alignItems: "center", marginTop: SPACING.xl },
     emptyIcon: { fontSize: 48, marginBottom: SPACING.md },
