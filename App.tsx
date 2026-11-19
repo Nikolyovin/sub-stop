@@ -1,183 +1,208 @@
-import React, { useState, useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { StatusBar } from "expo-status-bar";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { MobileAds } from "yandex-mobile-ads";
+import React, { useState, useEffect } from 'react'
+import { ActivityIndicator, View, BackHandler } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { StatusBar } from 'expo-status-bar'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { SafeAreaProvider } from 'react-native-safe-area-context' // 🚀 Добавлено для Safe Area
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
+import { MobileAds } from 'yandex-mobile-ads'
 
-import { OnboardingScreen } from "./src/screens/OnboardingScreen";
-import { MainScreen } from "./src/screens/MainScreen";
-import { SubscriptionDetailsScreen } from "./src/screens/SubscriptionDetailsScreen";
-import { SubscriptionFormScreen } from "./src/screens/SubscriptionFormScreen";
-import { SettingsScreen } from "./src/screens/SettingsScreen";
-import { StatisticsScreen } from "./src/screens/StatisticsScreen";
-import { PremiumScreen } from "./src/screens/PremiumScreen";
-import { CalendarScreen } from "./src/screens/CalendarScreen";
-import { LockScreen } from "./src/components/LockScreen";
+import { OnboardingScreen } from './src/screens/OnboardingScreen'
+import { MainScreen } from './src/screens/MainScreen'
+import { SubscriptionDetailsScreen } from './src/screens/SubscriptionDetailsScreen'
+import { SubscriptionFormScreen } from './src/screens/SubscriptionFormScreen'
+import { SettingsScreen } from './src/screens/SettingsScreen'
+import { StatisticsScreen } from './src/screens/StatisticsScreen'
+import { PremiumScreen } from './src/screens/PremiumScreen'
+import { CalendarScreen } from './src/screens/CalendarScreen'
+import { LockScreen } from './src/components/LockScreen'
 
-import { ThemeProvider } from "./src/theme/ThemeContext";
-import { useSubscriptionStore } from "./src/store/useSubscriptionStore";
-import { useSubscriptionSync } from "./src/hooks/useSubscriptionSync";
-import { useBiometricLock } from "./src/hooks/useBiometricLock";
-import { useSecurityStore } from "./src/store/useSecurityStore";
-import { useCurrencyRates } from "./src/hooks/useCurrencyRates";
-import { useInterstitialAd } from "./src/hooks/useInterstitialAd";
+import { ThemeProvider } from './src/theme/ThemeContext'
+import { useSubscriptionStore } from './src/store/useSubscriptionStore'
+import { useSubscriptionSync } from './src/hooks/useSubscriptionSync'
+import { useBiometricLock } from './src/hooks/useBiometricLock'
+import { useSecurityStore } from './src/store/useSecurityStore'
+import { useCurrencyRates } from './src/hooks/useCurrencyRates'
+import { useInterstitialAd } from './src/hooks/useInterstitialAd'
 
 type ScreenState =
-  | "main"
-  | "form"
-  | "details"
-  | "settings"
-  | "statistics"
-  | "premium"
-  | "calendar";
+  | 'main'
+  | 'form'
+  | 'details'
+  | 'settings'
+  | 'statistics'
+  | 'premium'
+  | 'calendar'
 
 const AppContent = () => {
-  const [screen, setScreen] = useState<ScreenState>("main");
-  const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
-  const [focusField, setFocusField] = useState<"note" | undefined>(undefined);
+  // 🚀 1. Используем стек экранов вместо одного состояния
+  const [screenStack, setScreenStack] = useState<ScreenState[]>(['main'])
+  const [selectedSubId, setSelectedSubId] = useState<string | null>(null)
+  const [focusField, setFocusField] = useState<'note' | undefined>(undefined)
 
-  const subscriptions = useSubscriptionStore((state) => state.subscriptions);
-  const subToEdit = subscriptions.find((s) => s.id === selectedSubId);
+  const currentScreen = screenStack[screenStack.length - 1]
 
-  useSubscriptionSync();
-  useCurrencyRates();
+  const subscriptions = useSubscriptionStore((state) => state.subscriptions)
+  const subToEdit = subscriptions.find((s) => s.id === selectedSubId)
 
-  const { showActionAd } = useInterstitialAd();
+  useSubscriptionSync()
+  useCurrencyRates()
+
+  const { showActionAd } = useInterstitialAd()
+
+  // 🚀 2. Функции навигации
+  const navigate = (screen: ScreenState) => {
+    setScreenStack((prev) => [...prev, screen])
+  }
+
+  const goBack = () => {
+    setScreenStack((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev))
+  }
+
+  // 🚀 3. Глобальная обработка кнопки "Назад" на Android
+  useEffect(() => {
+    const backAction = () => {
+      if (screenStack.length > 1) {
+        goBack()
+        return true // Предотвращаем закрытие приложения
+      }
+      return false // Разрешаем системное поведение (сворачивание)
+    }
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    )
+
+    return () => backHandler.remove()
+  }, [screenStack])
 
   return (
     <>
-      {screen === "main" && (
+      {currentScreen === 'main' && (
         <MainScreen
           onAddPress={() => {
-            setSelectedSubId(null);
-            setFocusField(undefined);
-            setScreen("form");
+            setSelectedSubId(null)
+            setFocusField(undefined)
+            navigate('form')
           }}
           onOpenDetails={(id) => {
-            setSelectedSubId(id);
-            setScreen("details");
+            setSelectedSubId(id)
+            navigate('details')
           }}
-          onOpenSettings={() => setScreen("settings")}
-          onOpenStatistics={() => setScreen("statistics")}
-          onOpenCalendar={() => setScreen("calendar")}
+          onOpenSettings={() => navigate('settings')}
+          onOpenStatistics={() => navigate('statistics')}
+          onOpenCalendar={() => navigate('calendar')}
           onShowAd={showActionAd}
         />
       )}
 
-      {screen === "details" && selectedSubId && (
+      {currentScreen === 'details' && selectedSubId && (
         <SubscriptionDetailsScreen
           subscriptionId={selectedSubId}
-          onBack={() => setScreen("main")}
+          onBack={goBack}
           onEdit={(sub, focus) => {
-            setSelectedSubId(sub.id);
-            setFocusField(focus);
-            setScreen("form");
+            setSelectedSubId(sub.id)
+            setFocusField(focus)
+            navigate('form')
           }}
         />
       )}
 
-      {screen === "form" && (
+      {currentScreen === 'form' && (
         <SubscriptionFormScreen
           initialData={subToEdit}
-          onBack={() => {
-            setScreen(selectedSubId ? "details" : "main");
-            if (!selectedSubId) {
-              showActionAd();
-            }
-          }}
+          onBack={goBack}
           focusField={focusField}
         />
       )}
 
-      {screen === "settings" && (
+      {currentScreen === 'settings' && (
         <SettingsScreen
-          onBack={() => setScreen("main")}
-          onOpenPremium={() => setScreen("premium")}
+          onBack={goBack}
+          onOpenPremium={() => navigate('premium')}
         />
       )}
 
-      {screen === "statistics" && (
-        <StatisticsScreen onBack={() => setScreen("main")} />
-      )}
+      {currentScreen === 'statistics' && <StatisticsScreen onBack={goBack} />}
 
-      {screen === "calendar" && (
+      {currentScreen === 'calendar' && (
         <CalendarScreen
-          onBack={() => setScreen("main")}
-          onOpenPremium={() => setScreen("premium")}
+          onBack={goBack}
+          onOpenPremium={() => navigate('premium')}
         />
       )}
 
-      {screen === "premium" && (
-        <PremiumScreen onBack={() => setScreen("settings")} />
-      )}
+      {currentScreen === 'premium' && <PremiumScreen onBack={goBack} />}
     </>
-  );
-};
+  )
+}
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isLoading, setIsLoading] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
-  const { isLockEnabled, isUnlocked } = useSecurityStore();
-  const { isAuthenticating, authenticate } = useBiometricLock();
+  const { isLockEnabled, isUnlocked } = useSecurityStore()
+  const { isAuthenticating, authenticate } = useBiometricLock()
 
   useEffect(() => {
     try {
-      MobileAds.initialize();
+      MobileAds.initialize()
     } catch (error) {
-      console.error("Ошибка инициализации рекламы:", error);
+      console.error('Ошибка инициализации рекламы:', error)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
-        const value = await AsyncStorage.getItem("@sub_stop_onboarding_seen");
-        if (value !== "true") setShowOnboarding(true);
+        const value = await AsyncStorage.getItem('@sub_stop_onboarding_seen')
+        if (value !== 'true') setShowOnboarding(true)
       } catch (e) {
-        console.error(e);
+        console.error(e)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
-    checkOnboarding();
-  }, []);
+    }
+    checkOnboarding()
+  }, [])
 
   if (isLoading) {
     return (
       <View
         style={{
           flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#F8FAFC",
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#F8FAFC',
         }}
       >
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size='large' color='#2563EB' />
       </View>
-    );
+    )
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <BottomSheetModalProvider>
-          <StatusBar style="auto" />
+    // 🚀 4. Обертка SafeAreaProvider для корректной работы отступов на всех устройствах
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeProvider>
+          <BottomSheetModalProvider>
+            <StatusBar style='auto' />
 
-          {isLockEnabled && !isUnlocked ? (
-            <LockScreen
-              onUnlock={authenticate}
-              isAuthenticating={isAuthenticating}
-            />
-          ) : showOnboarding ? (
-            <OnboardingScreen onFinish={() => setShowOnboarding(false)} />
-          ) : (
-            <AppContent />
-          )}
-        </BottomSheetModalProvider>
-      </ThemeProvider>
-    </GestureHandlerRootView>
-  );
+            {isLockEnabled && !isUnlocked ? (
+              <LockScreen
+                onUnlock={authenticate}
+                isAuthenticating={isAuthenticating}
+              />
+            ) : showOnboarding ? (
+              <OnboardingScreen onFinish={() => setShowOnboarding(false)} />
+            ) : (
+              <AppContent />
+            )}
+          </BottomSheetModalProvider>
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
+  )
 }
