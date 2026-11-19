@@ -19,7 +19,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 import { useSubscriptionDetails } from '../hooks/useSubscriptionDetails'
-import { formatPrice } from '../utils/formatUtils'
+import { formatPrice, formatCurrency } from '../utils/formatUtils'
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../theme'
 import { useTheme } from '../theme/ThemeContext'
 import { Subscription } from '../types'
@@ -31,12 +31,6 @@ interface SubscriptionDetailsScreenProps {
   subscriptionId: string
   onBack: () => void
   onEdit: (sub: Subscription, focus?: 'note') => void
-}
-
-const getCurrencySymbol = (curr: string) => {
-  if (curr === 'USD') return '$'
-  if (curr === 'EUR') return '€'
-  return '₽'
 }
 
 export const SubscriptionDetailsScreen: React.FC<
@@ -232,7 +226,7 @@ export const SubscriptionDetailsScreen: React.FC<
               numberOfLines={1}
               adjustsFontSizeToFit={true}
             >
-              {costs.monthly} {getCurrencySymbol(subscription.currency)}
+              {formatCurrency(costs.monthly, subscription.currency)}
             </Text>
             {/* 🚀 Показываем только если больше 0 */}
             {subscription.currency !== 'RUB' && costs.monthly > 0 && (
@@ -250,7 +244,7 @@ export const SubscriptionDetailsScreen: React.FC<
                 numberOfLines={1}
                 adjustsFontSizeToFit={true}
               >
-                {costs.futureMonthly} {getCurrencySymbol(subscription.currency)}
+                {formatCurrency(costs.futureMonthly, subscription.currency)}
               </Text>
               {subscription.currency !== 'RUB' && costs.futureMonthly > 0 && (
                 <Text style={styles.statSubValue}>
@@ -266,7 +260,7 @@ export const SubscriptionDetailsScreen: React.FC<
                 numberOfLines={1}
                 adjustsFontSizeToFit={true}
               >
-                {costs.yearly} {getCurrencySymbol(subscription.currency)}
+                {formatCurrency(costs.yearly, subscription.currency)}
               </Text>
               {subscription.currency !== 'RUB' && costs.yearly > 0 && (
                 <Text style={styles.statSubValue}>

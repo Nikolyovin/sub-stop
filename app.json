@@ -45,6 +45,7 @@
       "expo-sharing"
     ],
     "extra": {
+      "privacyUrl": "https://nikolyovin.github.io/sub-stop-privacy/",
       "eas": {
         "projectId": "24ce6daf-0c30-465d-aaac-346c6d8c6d29"
       }
