@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY, ThemeColors } from '../../theme'
 import { useTheme } from '../../theme/ThemeContext'
 
@@ -15,11 +16,16 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
 
+  const handlePress = (val: 'monthly' | 'yearly') => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    onChange(val)
+  }
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={[styles.button, value === 'monthly' && styles.activeButton]}
-        onPress={() => onChange('monthly')}
+        onPress={() => handlePress('monthly')}
       >
         <Text style={[styles.text, value === 'monthly' && styles.activeText]}>
           Месяц
@@ -28,7 +34,7 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
 
       <TouchableOpacity
         style={[styles.button, value === 'yearly' && styles.activeButton]}
-        onPress={() => onChange('yearly')}
+        onPress={() => handlePress('yearly')}
       >
         <Text style={[styles.text, value === 'yearly' && styles.activeText]}>
           Год
@@ -42,22 +48,28 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flexDirection: 'row',
-      gap: SPACING.md,
-      marginBottom: SPACING.md,
-    },
-    button: {
-      flex: 1,
       backgroundColor: colors.card,
-      padding: SPACING.md,
       borderRadius: BORDER_RADIUS.md,
-      alignItems: 'center',
+      padding: 4,
+      marginBottom: SPACING.sm,
       borderWidth: 1,
       borderColor: colors.border,
     },
+    button: {
+      flex: 1,
+      paddingVertical: 8, // 🚀 Уменьшили высоту
+      borderRadius: BORDER_RADIUS.md - 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     activeButton: {
       backgroundColor: colors.primary,
-      borderColor: colors.primary,
     },
-    text: { ...TYPOGRAPHY.body, color: colors.textMain, fontWeight: '500' },
+    text: {
+      ...TYPOGRAPHY.body,
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: '500',
+    },
     activeText: { color: colors.white, fontWeight: 'bold' },
   })

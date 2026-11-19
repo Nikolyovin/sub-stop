@@ -1,16 +1,16 @@
-import React, { useMemo } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
-import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../../theme";
-import { useTheme } from "../../theme/ThemeContext";
+import React, { useMemo } from 'react'
+import { View, Text, TextInput, StyleSheet } from 'react-native'
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../../theme'
+import { useTheme } from '../../theme/ThemeContext'
 
 interface InputFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder?: string;
-  // 🚀 Добавили decimal-pad
-  keyboardType?: "default" | "numeric" | "decimal-pad";
-  error?: string;
+  label: string
+  value: string
+  onChangeText: (text: string) => void
+  placeholder?: string
+  keyboardType?: 'default' | 'numeric' | 'decimal-pad'
+  error?: string
+  rightElement?: React.ReactNode // 🚀 Добавили элемент справа
 }
 
 export const InputField: React.FC<InputFieldProps> = ({
@@ -18,44 +18,60 @@ export const InputField: React.FC<InputFieldProps> = ({
   value,
   onChangeText,
   placeholder,
-  keyboardType = "default",
+  keyboardType = 'default',
   error,
+  rightElement,
 }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, !!error && styles.inputError]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textSecondary}
-        keyboardType={keyboardType}
-      />
+      <View style={[styles.inputWrapper, !!error && styles.inputError]}>
+        <TextInput
+          style={styles.input}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textSecondary}
+          keyboardType={keyboardType}
+        />
+        {rightElement && (
+          <View style={styles.rightElement}>{rightElement}</View>
+        )}
+      </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
-  );
-};
+  )
+}
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { marginBottom: SPACING.md },
+    container: { marginBottom: SPACING.sm }, // 🚀 Уменьшили отступ
     label: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      marginBottom: SPACING.xs,
+      marginBottom: 6,
     },
-    input: {
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
-      padding: SPACING.md,
-      fontSize: 16,
-      color: colors.textMain,
       borderWidth: 1,
       borderColor: colors.border,
+      paddingHorizontal: SPACING.md,
+      height: 48, // 🚀 Фиксируем высоту для компактности
+    },
+    input: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textMain,
+      height: '100%',
+    },
+    rightElement: {
+      marginLeft: SPACING.sm,
     },
     inputError: {
       borderColor: colors.danger,
@@ -66,4 +82,4 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: 4,
       fontSize: 12,
     },
-  });
+  })
