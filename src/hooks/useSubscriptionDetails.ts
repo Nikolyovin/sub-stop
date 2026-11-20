@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { useSubscriptionStore } from '../store/useSubscriptionStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { CATEGORIES, Subscription } from '../types'
-import { differenceInCalendarDays } from 'date-fns'
+import { differenceInCalendarDays, subMonths, getDaysInMonth } from 'date-fns'
+import { parseDate } from '../utils/dateUtils' // 🚀
 
 const getActualPrice = (sub: Subscription) => {
   if (sub.status === 'active' && sub.price === 0 && sub.regularPrice) {
@@ -66,10 +67,21 @@ export const useSubscriptionDetails = (id: string | null) => {
     if (!subscription) return { daysLeft: 0, progress: 0 }
 
     const today = new Date()
-    const paymentDate = new Date(subscription.nextPaymentDate)
+    // 🚀 Локальная полночь вместо UTC-сдвига
+    const paymentDate = parseDate(subscription.nextPaymentDate)
     const daysLeft = Math.max(0, differenceInCalendarDays(paymentDate, today))
 
-    const totalDays = subscription.billingCycle === 'monthly' ? 30 : 365
+    // 🚀 Точная длительность цикла: для месяца — реальное число дней
+    // в месяце списания (28/29/30/31), для года — 365/366.
+    let totalDays: number
+    if (subscription.billingCycle === 'monthly') {
+      totalDays = getDaysInMonth(paymentDate)
+    } else {
+      const prevYear = subMonths(paymentDate, 12)
+      // Год = количество дней между датой списания и датой год назад
+      totalDays = differenceInCalendarDays(paymentDate, prevYear) || 365
+    }
+
     const daysPassed = Math.max(0, totalDays - daysLeft)
     const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100))
 

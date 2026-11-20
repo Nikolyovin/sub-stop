@@ -27,7 +27,6 @@ import {
 } from '../theme'
 import { useTheme } from '../theme/ThemeContext'
 
-// 🚀 Настройка русского языка для календаря
 LocaleConfig.locales['ru'] = {
   monthNames: [
     'Январь',
@@ -71,6 +70,14 @@ LocaleConfig.locales['ru'] = {
 }
 LocaleConfig.defaultLocale = 'ru'
 
+// 🚀 Функция для получения реальной цены (учитывает триалы)
+const getActualPrice = (sub: any) => {
+  if (sub.status === 'active' && sub.price === 0 && sub.regularPrice) {
+    return sub.regularPrice
+  }
+  return sub.price
+}
+
 interface CalendarScreenProps {
   onBack: () => void
   onOpenPremium: () => void
@@ -92,19 +99,16 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     format(new Date(), 'yyyy-MM-dd'),
   )
 
-  // 🚀 Подготовка дат для календаря
   const markedDates = useMemo(() => {
     const marked: any = {}
 
     subscriptions.forEach((sub) => {
-      // Мы берем только первый платеж (или текущий), для календаря этого достаточно
       const dateStr = sub.nextPaymentDate
       if (!marked[dateStr]) {
         marked[dateStr] = { marked: true, dotColor: colors.primary }
       }
     })
 
-    // Добавляем выделение выбранного дня
     marked[selectedDate] = {
       ...marked[selectedDate],
       selected: true,
@@ -114,15 +118,14 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     return marked
   }, [subscriptions, selectedDate, colors.primary])
 
-  // 🚀 Фильтруем подписки на выбранный день
   const daySubscriptions = useMemo(() => {
     return subscriptions.filter((sub) => sub.nextPaymentDate === selectedDate)
   }, [subscriptions, selectedDate])
 
-  // 🚀 Считаем сумму за день (в рублях)
+  // 🚀 Исправлен подсчёт суммы: теперь учитывает regularPrice для триалов
   const dayTotal = useMemo(() => {
     return daySubscriptions.reduce((sum, sub) => {
-      const price = sub.price
+      const price = getActualPrice(sub) // <-- Было: sub.price
       let rubPrice = price
       if (sub.currency === 'USD') rubPrice = price * usdRate
       if (sub.currency === 'EUR') rubPrice = price * eurRate
@@ -146,7 +149,6 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* 🚀 Плашка Премиума (если не куплен) */}
         {!isPremium && (
           <TouchableOpacity
             style={styles.premiumBanner}
@@ -280,7 +282,6 @@ const createStyles = (colors: ThemeColors) =>
     placeholder: { width: 44 },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
 
-    // Баннер премиума
     premiumBanner: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -294,7 +295,6 @@ const createStyles = (colors: ThemeColors) =>
     premiumTitle: { ...TYPOGRAPHY.subtitle, color: '#92400E', fontSize: 15 },
     premiumDesc: { ...TYPOGRAPHY.caption, color: '#92400E', marginTop: 2 },
 
-    // Календарь
     calendarWrapper: {
       borderRadius: BORDER_RADIUS.xl,
       overflow: 'hidden',
@@ -305,7 +305,6 @@ const createStyles = (colors: ThemeColors) =>
       ...SHADOWS.soft,
     },
 
-    // Список подписок
     listSection: { flex: 1 },
     dateHeader: {
       flexDirection: 'row',

@@ -4,7 +4,8 @@ import { useSettingsStore } from '../store/useSettingsStore'
 import { scheduleSubscriptionReminder } from '../services/notificationService'
 import { format, addMonths, addYears } from 'date-fns'
 import { Subscription } from '../types'
-import * as Notifications from 'expo-notifications' // 🚀 Импортируем для очистки
+import { parseDate } from '../utils/dateUtils' // 🚀
+import * as Notifications from 'expo-notifications'
 
 export const useSubscriptionSync = () => {
   const { subscriptions, updateSubscription } = useSubscriptionStore()
@@ -14,7 +15,7 @@ export const useSubscriptionSync = () => {
 
   useEffect(() => {
     const syncSubscriptions = async () => {
-      // 🚀 1. Очищаем ВСЕ старые уведомления (чтобы не было дублей)
+      // 1. Очищаем ВСЕ старые уведомления (чтобы не было дублей)
       await Notifications.cancelAllScheduledNotificationsAsync()
 
       const today = new Date()
@@ -28,7 +29,8 @@ export const useSubscriptionSync = () => {
       }
 
       for (const sub of subscriptions) {
-        let currentDate = new Date(sub.nextPaymentDate)
+        // 🚀 Было: new Date(sub.nextPaymentDate) — UTC-полночь, сдвиг на сутки
+        let currentDate = parseDate(sub.nextPaymentDate)
         let updated = false
         let newStatus = sub.status
         let newPrice = sub.price
@@ -58,7 +60,7 @@ export const useSubscriptionSync = () => {
           updateSubscription(sub.id, updates)
         }
 
-        // 🚀 2. Планируем уведомления ЗАНОВО для каждой подписки с новым временем
+        // 2. Планируем уведомления ЗАНОВО для каждой подписки
         const updatedSub: Subscription = {
           ...sub,
           nextPaymentDate: format(currentDate, 'yyyy-MM-dd'),
@@ -73,6 +75,5 @@ export const useSubscriptionSync = () => {
     if (subscriptions.length > 0) {
       syncSubscriptions()
     }
-    // 🚀 Теперь эффект срабатывает при изменении времени или тумблеров
   }, [notifyTrials, notifyRegular, reminderHour, reminderMinute])
 }

@@ -128,7 +128,6 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
     else setter(limitedInt)
   }
 
-  // 🚀 Компонент выбора валюты для интеграции в инпут
   const CurrencyToggle = () => (
     <View style={styles.currencyToggle}>
       {(['RUB', 'USD', 'EUR'] as const).map((curr) => (
@@ -168,14 +167,14 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
+        {/* 🚀 ScrollView теперь без кнопки */}
         <ScrollView
           ref={scrollViewRef}
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.form,
             {
-              paddingBottom:
-                keyboardHeight > 0 ? keyboardHeight + 20 : SPACING.md,
+              paddingBottom: SPACING.md, // Убрали большой отступ, кнопка теперь снаружи
             },
           ]}
           showsVerticalScrollIndicator={false}
@@ -208,7 +207,6 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* 🚀 СТАТУС (компактный переключатель) */}
           <Text style={styles.label}>Статус</Text>
           <View style={styles.segmentedControl}>
             <TouchableOpacity
@@ -247,7 +245,6 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* 🚀 ЦЕНА И ВАЛЮТА В ОДНОЙ СТРОКЕ */}
           <InputField
             label={
               form.status === 'trial' ? 'Стоимость во время промо' : 'Стоимость'
@@ -332,7 +329,15 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
                 )
             }}
           />
+        </ScrollView>
 
+        {/* 🚀 Кнопка теперь фиксирована внизу, вне ScrollView */}
+        <View
+          style={[
+            styles.bottomButtonContainer,
+            keyboardHeight > 0 && { marginBottom: keyboardHeight },
+          ]}
+        >
           <TouchableOpacity
             style={[styles.saveBtn, !form.isValid && styles.saveBtnDisabled]}
             onPress={form.save}
@@ -342,7 +347,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
               {form.isEditing ? 'Сохранить изменения' : 'Добавить'}
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
 
       <BrandPickerSheet
@@ -363,7 +368,7 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       paddingHorizontal: SPACING.lg,
       height: 56,
-      marginBottom: SPACING.sm, // Уменьшили
+      marginBottom: SPACING.sm,
     },
     headerTitle: {
       flex: 1,
@@ -393,7 +398,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: SPACING.md,
       borderWidth: 1,
       borderColor: colors.border,
-      height: 48, // Компактная высота
+      height: 48,
     },
     selectorTextPlaceholder: { fontSize: 16, color: colors.textSecondary },
     selectorTextActive: {
@@ -402,7 +407,6 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: '500',
     },
 
-    // 🚀 Компактный Segmented Control для статуса
     segmentedControl: {
       flexDirection: 'row',
       backgroundColor: colors.card,
@@ -427,7 +431,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     segmentTextActive: { color: colors.white, fontWeight: 'bold' },
 
-    // 🚀 Валютный переключатель внутри инпута
     currencyToggle: {
       flexDirection: 'row',
       backgroundColor: colors.background,
@@ -450,7 +453,7 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: SPACING.sm,
-      height: 48, // Компактная высота
+      height: 48,
       justifyContent: 'center',
     },
     dateText: { fontSize: 16, color: colors.textMain },
@@ -461,12 +464,19 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
     },
 
+    // 🚀 Новый контейнер для фиксированной кнопки внизу
+    bottomButtonContainer: {
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: SPACING.md,
+      backgroundColor: colors.background,
+    },
+
     saveBtn: {
       backgroundColor: colors.primary,
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.round,
       alignItems: 'center',
-      marginTop: SPACING.md,
     },
     saveBtnDisabled: { opacity: 0.5 },
     saveBtnText: { ...TYPOGRAPHY.button, color: colors.white, fontSize: 18 },
