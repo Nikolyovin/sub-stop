@@ -11,8 +11,10 @@ import { Ionicons } from '@expo/vector-icons'
 import { BannerView, BannerAdSize } from 'yandex-mobile-ads'
 import { useDashboard } from '../hooks/useDashboard'
 import { usePremiumStore } from '../store/usePremiumStore'
+import { useSubscriptionStore } from '../store/useSubscriptionStore' // 🚀 Для isHydrated
 import { UndoSnackbar } from '../components/ui/UndoSnackbar'
 import { SwipeableCard } from '../components/ui/SwipeableCard'
+import { SkeletonCard } from '../components/ui/SkeletonCard' // 🚀 Скелетон
 import { formatPrice } from '../utils/formatUtils'
 import {
   SPACING,
@@ -23,7 +25,6 @@ import {
 } from '../theme'
 import { useTheme } from '../theme/ThemeContext'
 import { Subscription } from '../types'
-import { useSubscriptionStore } from '../store/useSubscriptionStore'
 
 interface MainScreenProps {
   onAddPress: () => void
@@ -47,6 +48,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
   const { isPremium } = usePremiumStore()
+
+  // 🚀 Проверяем, загружены ли данные из AsyncStorage
+  const isHydrated = useSubscriptionStore((state) => state.isHydrated)
 
   const {
     subscriptions,
@@ -86,13 +90,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       const currentIndex = subscriptions.findIndex((s) => s.id === id)
       setLastDeletedIndex(currentIndex)
       setLastDeleted(sub)
-
-      // 1. Сначала выполняем действие
       removeSubscription(id)
       setShowUndo(true)
 
-      // 2. 🚀 Реклама срабатывает только при УСПЕШНОМ завершении действия (удалении)
-      // Это соответствует правилам RuStore (нет рекламы при отмене)
       onShowAd()
 
       if (timerRef.current) clearTimeout(timerRef.current)
@@ -121,6 +121,49 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     ),
     [onOpenDetails, handleDelete, colors, openCardId],
   )
+
+  // 🚀 Показываем скелетон пока данные не загружены из AsyncStorage
+  if (!isHydrated) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerSide}>
+            <View style={[styles.iconBtn, { backgroundColor: colors.card }]} />
+          </View>
+          <View style={styles.headerTitleContainer}>
+            <View
+              style={[styles.skeletonTitle, { backgroundColor: colors.border }]}
+            />
+          </View>
+          <View style={[styles.headerSide, { alignItems: 'flex-end' }]}>
+            <View style={styles.iconBtnPrimary} />
+          </View>
+        </View>
+
+        <View
+          style={[styles.skeletonCard, { backgroundColor: colors.border }]}
+        />
+        <View
+          style={[styles.skeletonCardSmall, { backgroundColor: colors.border }]}
+        />
+
+        <FlatList
+          style={{ flex: 1 }}
+          data={[1, 2, 3]} // 3 скелетона
+          keyExtractor={(item) => item.toString()}
+          renderItem={() => <SkeletonCard />}
+          contentContainerStyle={{
+            paddingHorizontal: SPACING.lg,
+            paddingTop: SPACING.xs,
+            paddingBottom: 20,
+          }}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          overScrollMode='never'
+        />
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -277,6 +320,11 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
       fontSize: 22,
     },
+    skeletonTitle: {
+      height: 22,
+      borderRadius: 4,
+      width: '50%',
+    },
     proBadge: {
       backgroundColor: '#F59E0B',
       flexDirection: 'row',
@@ -417,5 +465,19 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       paddingVertical: 4,
       backgroundColor: colors.background,
+    },
+
+    // 🚀 Стили для скелетона карточек (заглушки)
+    skeletonCard: {
+      height: 120,
+      borderRadius: BORDER_RADIUS.xl,
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.sm,
+    },
+    skeletonCardSmall: {
+      height: 48,
+      borderRadius: BORDER_RADIUS.lg,
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.sm,
     },
   })

@@ -1,23 +1,32 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useSubscriptionStore } from '../store/useSubscriptionStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { scheduleSubscriptionReminder } from '../services/notificationService'
 import { format, addMonths, addYears } from 'date-fns'
 import { Subscription } from '../types'
-import { parseDate } from '../utils/dateUtils' // 🚀
+import { parseDate } from '../utils/dateUtils'
 import * as Notifications from 'expo-notifications'
 
 export const useSubscriptionSync = () => {
-  const { subscriptions, updateSubscription } = useSubscriptionStore()
-
+  const { subscriptions, batchUpdateSubscriptions } = useSubscriptionStore()
   const { notifyTrials, notifyRegular, reminderHour, reminderMinute } =
     useSettingsStore()
 
-  useEffect(() => {
-    const syncSubscriptions = async () => {
-      // 1. Очищаем ВСЕ старые уведомления (чтобы не было дублей)
-      await Notifications.cancelAllScheduledNotificationsAsync()
+  // 🚀 Флаг, чтобы не запускать sync повторно при тех же данных
+  const lastSyncedRef = useRef<string>('')
 
+  useEffect(() => {
+    if (subscriptions.length === 0) return
+
+    // 🚀 Создаём "сигнатуру" состояния — sync запустится только если реально что-то изменилось
+    const signature = subscriptions
+      .map((s) => `${s.id}:${s.nextPaymentDate}:${s.status}:${s.price}`)
+      .join('|')
+
+    if (lastSyncedRef.current === signature) return
+    lastSyncedRef.current = signature
+
+    const syncSubscriptions = async () => {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
@@ -28,8 +37,11 @@ export const useSubscriptionSync = () => {
         minute: reminderMinute,
       }
 
+      // 🚀 ФАЗА 1: Синхронно собираем все изменения
+      const updates: Array<{ id: string; data: Partial<Subscription> }> = []
+      const updatedSubsForNotifications: Subscription[] = []
+
       for (const sub of subscriptions) {
-        // 🚀 Было: new Date(sub.nextPaymentDate) — UTC-полночь, сдвиг на сутки
         let currentDate = parseDate(sub.nextPaymentDate)
         let updated = false
         let newStatus = sub.status
@@ -52,28 +64,46 @@ export const useSubscriptionSync = () => {
 
         if (updated) {
           const newDateStr = format(currentDate, 'yyyy-MM-dd')
-          const updates: Partial<Subscription> = {
+          updates.push({
+            id: sub.id,
+            data: {
+              nextPaymentDate: newDateStr,
+              status: newStatus,
+              price: newPrice,
+            },
+          })
+
+          updatedSubsForNotifications.push({
+            ...sub,
             nextPaymentDate: newDateStr,
             status: newStatus,
             price: newPrice,
-          }
-          updateSubscription(sub.id, updates)
+          })
+        } else {
+          updatedSubsForNotifications.push(sub)
         }
+      }
 
-        // 2. Планируем уведомления ЗАНОВО для каждой подписки
-        const updatedSub: Subscription = {
-          ...sub,
-          nextPaymentDate: format(currentDate, 'yyyy-MM-dd'),
-          status: newStatus,
-          price: newPrice,
-        } as Subscription
+      // 🚀 Один батч-апдейт = ОДИН ререндер (вместо N)
+      if (updates.length > 0) {
+        batchUpdateSubscriptions(updates)
+      }
 
-        await scheduleSubscriptionReminder(updatedSub, settingsPayload)
+      // 🚀 ФАЗА 2: Асинхронно планируем уведомления (не блокирует UI)
+      await Notifications.cancelAllScheduledNotificationsAsync()
+
+      for (const sub of updatedSubsForNotifications) {
+        await scheduleSubscriptionReminder(sub, settingsPayload)
       }
     }
 
-    if (subscriptions.length > 0) {
-      syncSubscriptions()
-    }
-  }, [notifyTrials, notifyRegular, reminderHour, reminderMinute])
+    syncSubscriptions()
+  }, [
+    subscriptions,
+    notifyTrials,
+    notifyRegular,
+    reminderHour,
+    reminderMinute,
+    batchUpdateSubscriptions,
+  ])
 }
