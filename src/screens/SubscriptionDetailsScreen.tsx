@@ -53,6 +53,7 @@ export const SubscriptionDetailsScreen: React.FC<
 
   const isTrial = subscription?.status === 'trial'
   const isTrialEndingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3
+  const isYearly = subscription?.billingCycle === 'yearly'
 
   const pulse = useSharedValue(1)
   useEffect(() => {
@@ -228,7 +229,6 @@ export const SubscriptionDetailsScreen: React.FC<
             >
               {formatCurrency(costs.monthly, subscription.currency)}
             </Text>
-            {/* 🚀 Показываем только если больше 0 */}
             {subscription.currency !== 'RUB' && costs.monthly > 0 && (
               <Text style={styles.statSubValue}>
                 ≈ {formatPrice(costs.monthlyRub)}
@@ -238,19 +238,29 @@ export const SubscriptionDetailsScreen: React.FC<
 
           {isTrial && costs.futureMonthly > costs.monthly ? (
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>После триала</Text>
+              {/* 🚀 Показываем годовую цену для yearly, месячную для monthly */}
+              <Text style={styles.statLabel}>
+                После триала {isYearly ? '(в год)' : ''}
+              </Text>
               <Text
                 style={[styles.statValue, { color: colors.danger }]}
                 numberOfLines={1}
                 adjustsFontSizeToFit={true}
               >
-                {formatCurrency(costs.futureMonthly, subscription.currency)}
+                {formatCurrency(
+                  isYearly ? costs.futureYearly : costs.futureMonthly,
+                  subscription.currency,
+                )}
               </Text>
-              {subscription.currency !== 'RUB' && costs.futureMonthly > 0 && (
-                <Text style={styles.statSubValue}>
-                  ≈ {formatPrice(costs.futureMonthlyRub)}
-                </Text>
-              )}
+              {subscription.currency !== 'RUB' &&
+                (isYearly ? costs.futureYearly : costs.futureMonthly) > 0 && (
+                  <Text style={styles.statSubValue}>
+                    ≈{' '}
+                    {formatPrice(
+                      isYearly ? costs.futureYearlyRub : costs.futureMonthlyRub,
+                    )}
+                  </Text>
+                )}
             </View>
           ) : (
             <View style={styles.statBox}>

@@ -13,7 +13,7 @@ import * as Sharing from 'expo-sharing'
 import ViewShot, { captureRef } from 'react-native-view-shot'
 import Svg, { Circle } from 'react-native-svg'
 import { useStatistics } from '../hooks/useStatistics'
-import { useSettingsStore } from '../store/useSettingsStore' // 🚀 Добавили для курсов
+import { useSettingsStore } from '../store/useSettingsStore'
 import { CategoryProgressBar } from '../components/ui/CategoryProgressBar'
 import { formatPrice, formatCurrency } from '../utils/formatUtils'
 import { getBrandData, getBrandBackground } from '../utils/brandUtils'
@@ -38,7 +38,6 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
   const isDark = theme === 'dark'
   const styles = useMemo(() => createStyles(colors), [colors])
 
-  // 🚀 Достаем курсы для пересчета в топ-3
   const { usdRate, eurRate } = useSettingsStore()
 
   const {
@@ -52,8 +51,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
 
   const viewShotRef = useRef<any>(null)
 
-  const size = 180
-  const strokeWidth = 24
+  const size = 160 // 🚀 Было 180, уменьшили
+  const strokeWidth = 22 // 🚀 Было 24
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   let currentOffset = 0
@@ -72,7 +71,6 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
     }
   }
 
-  // 🚀 Функция конвертации в рубли для топ-3
   const convertToRub = (amount: number, currency: string) => {
     if (currency === 'USD') return amount * usdRate
     if (currency === 'EUR') return amount * eurRate
@@ -153,7 +151,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
         {difference > 0 && (
           <View style={styles.warningCard}>
             <View style={styles.warningHeader}>
-              <Ionicons name='warning-outline' size={22} color='#D97706' />
+              <Ionicons name='warning-outline' size={20} color='#D97706' />
               <Text style={styles.warningTitle}>Внимание: Триалы</Text>
             </View>
             <Text style={styles.warningText}>
@@ -170,16 +168,17 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
           <View style={styles.topSection}>
             <Text style={styles.sectionTitle}>Самые дорогие</Text>
             <View style={styles.topList}>
-              {topSubscriptions.map((sub) => {
+              {topSubscriptions.map((sub, index) => {
                 const brand = getBrandData(sub.name)
-                // Берем оригинальную цену (для месяца)
                 const originalPrice =
                   sub.billingCycle === 'yearly' ? sub.price / 12 : sub.price
-                // Считаем цену в рублях для пересчета
                 const rubPrice = convertToRub(originalPrice, sub.currency)
 
                 return (
                   <View key={sub.id} style={styles.topItem}>
+                    {/* 🚀 Номер позиции (как в Т-Банке) */}
+                    <Text style={styles.topRank}>{index + 1}</Text>
+
                     <View
                       style={[
                         styles.topIconWrapper,
@@ -192,8 +191,6 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
                       {sub.name}
                     </Text>
 
-                    {/* 🚀 Красиво выводим цену в валюте (с пробелами тысяч и
-                        без дробных "хвостов") и пересчет в рублях */}
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={styles.topPrice}>
                         {formatCurrency(originalPrice, sub.currency)}
@@ -211,7 +208,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({
           </View>
         )}
 
-        <Text style={[styles.sectionTitle, { marginTop: SPACING.lg }]}>
+        <Text style={[styles.sectionTitle, { marginTop: SPACING.md }]}>
           По категориям
         </Text>
         {result.length === 0 ? (
@@ -245,7 +242,7 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       paddingHorizontal: SPACING.lg,
       height: 56,
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm,
     },
     backBtn: { width: 44, justifyContent: 'center' },
     shareBtn: { width: 44, justifyContent: 'center', alignItems: 'flex-end' },
@@ -261,7 +258,7 @@ const createStyles = (colors: ThemeColors) =>
     shareableCard: {
       backgroundColor: '#1E293B',
       borderRadius: BORDER_RADIUS.xl,
-      paddingVertical: SPACING.xl,
+      paddingVertical: SPACING.lg, // 🚀 Было xl
       paddingHorizontal: SPACING.lg,
       marginBottom: SPACING.md,
       alignItems: 'center',
@@ -272,7 +269,7 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm,
     },
     chartCenter: {
       position: 'absolute',
@@ -283,13 +280,14 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.caption,
       color: 'rgba(255,255,255,0.7)',
       marginBottom: 2,
+      fontSize: 12,
     },
-    chartAmount: { fontSize: 24, fontWeight: '800', color: '#FFF' },
+    chartAmount: { fontSize: 22, fontWeight: '800', color: '#FFF' }, // 🚀 Было 24
     chartYearly: {
       ...TYPOGRAPHY.caption,
       color: 'rgba(255,255,255,0.5)',
       marginTop: 2,
-      fontSize: 12,
+      fontSize: 11,
     },
     shareBrand: {
       flexDirection: 'row',
@@ -307,8 +305,8 @@ const createStyles = (colors: ThemeColors) =>
     warningCard: {
       backgroundColor: '#FEF3C7',
       borderRadius: BORDER_RADIUS.lg,
-      padding: 16,
-      marginBottom: SPACING.lg,
+      padding: SPACING.md, // 🚀 Было 16
+      marginBottom: SPACING.md,
       borderWidth: 1,
       borderColor: '#FDE68A',
     },
@@ -316,10 +314,15 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginBottom: 6,
+      marginBottom: 4,
     },
-    warningTitle: { ...TYPOGRAPHY.subtitle, color: '#92400E', fontSize: 16 },
-    warningText: { ...TYPOGRAPHY.body, color: '#92400E', lineHeight: 22 },
+    warningTitle: { ...TYPOGRAPHY.subtitle, color: '#92400E', fontSize: 15 },
+    warningText: {
+      ...TYPOGRAPHY.body,
+      color: '#92400E',
+      lineHeight: 20,
+      fontSize: 14,
+    },
     boldText: { fontWeight: 'bold', color: '#92400E' },
     plusText: { fontWeight: 'bold', color: '#EF4444' },
 
@@ -327,29 +330,36 @@ const createStyles = (colors: ThemeColors) =>
     sectionTitle: {
       ...TYPOGRAPHY.subtitle,
       color: colors.textSecondary,
-      fontSize: 14,
+      fontSize: 13, // 🚀 Было 14
       textTransform: 'uppercase',
-      marginBottom: SPACING.sm,
+      marginBottom: SPACING.xs, // 🚀 Было sm
     },
     topList: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.lg,
-      padding: SPACING.sm,
+      padding: SPACING.xs, // 🚀 Было sm
       borderWidth: 1,
       borderColor: colors.border,
     },
     topItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 10,
+      paddingVertical: 6, // 🚀 Было 10
       paddingHorizontal: SPACING.xs,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.background,
+      // 🚀 Убрали borderBottomWidth — в Т-Банке нет разделителей
+    },
+    topRank: {
+      width: 20,
+      textAlign: 'center',
+      ...TYPOGRAPHY.caption,
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '600',
     },
     topIconWrapper: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
+      width: 28, // 🚀 Было 36
+      height: 28,
+      borderRadius: 7,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: SPACING.sm,
@@ -358,13 +368,12 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       ...TYPOGRAPHY.body,
       color: colors.textMain,
-      fontSize: 15,
+      fontSize: 14, // 🚀 Было 15
       fontWeight: '500',
     },
-    topPrice: { ...TYPOGRAPHY.subtitle, color: colors.primary, fontSize: 15 },
+    topPrice: { ...TYPOGRAPHY.subtitle, color: colors.primary, fontSize: 14 }, // 🚀 Было 15
 
-    // 🚀 Новый стиль для пересчета в рублях
-    topRubPrice: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+    topRubPrice: { fontSize: 10, color: colors.textSecondary, marginTop: 1 },
 
     emptyState: { alignItems: 'center', marginTop: SPACING.xl },
     emptyIcon: { fontSize: 48, marginBottom: SPACING.md },

@@ -167,14 +167,13 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
-        {/* 🚀 ScrollView теперь без кнопки */}
         <ScrollView
           ref={scrollViewRef}
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.form,
             {
-              paddingBottom: SPACING.md, // Убрали большой отступ, кнопка теперь снаружи
+              paddingBottom: SPACING.md,
             },
           ]}
           showsVerticalScrollIndicator={false}
@@ -268,7 +267,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
               onChangeText={(text) =>
                 handlePriceChange(text, form.setRegularPrice)
               }
-              placeholder='Например, 599'
+              placeholder='0' // 🚀 Было: 'Например, 599'
               keyboardType='decimal-pad'
               rightElement={<CurrencyToggle />}
               error={
@@ -331,7 +330,6 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
           />
         </ScrollView>
 
-        {/* 🚀 Кнопка теперь фиксирована внизу, вне ScrollView */}
         <View
           style={[
             styles.bottomButtonContainer,
@@ -464,7 +462,6 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
     },
 
-    // 🚀 Новый контейнер для фиксированной кнопки внизу
     bottomButtonContainer: {
       paddingHorizontal: SPACING.lg,
       paddingTop: SPACING.sm,

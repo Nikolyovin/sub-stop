@@ -3,7 +3,7 @@ import { useSubscriptionStore } from '../store/useSubscriptionStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { CATEGORIES, Subscription } from '../types'
 import { differenceInCalendarDays, subMonths, getDaysInMonth } from 'date-fns'
-import { parseDate } from '../utils/dateUtils' // 🚀
+import { parseDate } from '../utils/dateUtils'
 
 const getActualPrice = (sub: Subscription) => {
   if (sub.status === 'active' && sub.price === 0 && sub.regularPrice) {
@@ -33,9 +33,11 @@ export const useSubscriptionDetails = (id: string | null) => {
         monthly: 0,
         yearly: 0,
         futureMonthly: 0,
+        futureYearly: 0, // 🚀 Добавили годовую цену после триала
         monthlyRub: 0,
         yearlyRub: 0,
         futureMonthlyRub: 0,
+        futureYearlyRub: 0,
       }
     }
     const isYearly = subscription.billingCycle === 'yearly'
@@ -46,6 +48,7 @@ export const useSubscriptionDetails = (id: string | null) => {
     const monthly = isYearly ? currentPrice / 12 : currentPrice
     const yearly = isYearly ? currentPrice : currentPrice * 12
     const futureMonthly = isYearly ? futurePrice / 12 : futurePrice
+    const futureYearly = isYearly ? futurePrice : futurePrice * 12 // 🚀
 
     const convertToRub = (amount: number) => {
       if (subscription.currency === 'USD') return amount * usdRate
@@ -57,9 +60,11 @@ export const useSubscriptionDetails = (id: string | null) => {
       monthly,
       yearly,
       futureMonthly,
+      futureYearly, // 🚀
       monthlyRub: convertToRub(monthly),
       yearlyRub: convertToRub(yearly),
       futureMonthlyRub: convertToRub(futureMonthly),
+      futureYearlyRub: convertToRub(futureYearly), // 🚀
     }
   }, [subscription, usdRate, eurRate])
 
@@ -67,18 +72,14 @@ export const useSubscriptionDetails = (id: string | null) => {
     if (!subscription) return { daysLeft: 0, progress: 0 }
 
     const today = new Date()
-    // 🚀 Локальная полночь вместо UTC-сдвига
     const paymentDate = parseDate(subscription.nextPaymentDate)
     const daysLeft = Math.max(0, differenceInCalendarDays(paymentDate, today))
 
-    // 🚀 Точная длительность цикла: для месяца — реальное число дней
-    // в месяце списания (28/29/30/31), для года — 365/366.
     let totalDays: number
     if (subscription.billingCycle === 'monthly') {
       totalDays = getDaysInMonth(paymentDate)
     } else {
       const prevYear = subMonths(paymentDate, 12)
-      // Год = количество дней между датой списания и датой год назад
       totalDays = differenceInCalendarDays(paymentDate, prevYear) || 365
     }
 

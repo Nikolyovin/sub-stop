@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from '../../theme'
 import { useTheme } from '../../theme/ThemeContext'
-import { formatPrice } from '../../utils/formatUtils' // 🚀 Добавили для форматирования суммы
+import { formatPrice } from '../../utils/formatUtils'
 
 interface CategoryProgressBarProps {
   label: string
@@ -28,12 +28,16 @@ export const CategoryProgressBar: React.FC<CategoryProgressBarProps> = ({
       <View style={styles.header}>
         <View style={styles.leftSide}>
           <View style={[styles.iconWrapper, { backgroundColor: `${color}15` }]}>
-            <Ionicons name={icon as any} size={18} color={color} />
+            <Ionicons name={icon as any} size={16} color={color} />{' '}
+            {/* 🚀 Было 18 */}
           </View>
           <Text style={styles.label}>{label}</Text>
         </View>
-        {/* 🚀 Теперь сумма форматируется: "1 000 ₽" вместо "1000 ₽" */}
-        <Text style={styles.amount}>{formatPrice(amount)}</Text>
+        {/* 🚀 Сумма и процент в одну строку, компактнее */}
+        <View style={styles.rightSide}>
+          <Text style={styles.amount}>{formatPrice(amount)}</Text>
+          <Text style={styles.percentageText}>{percentage}%</Text>
+        </View>
       </View>
 
       <View style={styles.progressTrack}>
@@ -44,7 +48,6 @@ export const CategoryProgressBar: React.FC<CategoryProgressBarProps> = ({
           ]}
         />
       </View>
-      <Text style={styles.percentageText}>{percentage}% от общих трат</Text>
     </View>
   )
 }
@@ -53,9 +56,9 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       backgroundColor: colors.card,
-      padding: SPACING.md,
+      padding: 10, // 🚀 Было SPACING.md (16)
       borderRadius: BORDER_RADIUS.lg,
-      marginBottom: SPACING.sm,
+      marginBottom: 6, // 🚀 Было SPACING.sm (8)
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -63,29 +66,34 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: SPACING.sm,
+      marginBottom: 6, // 🚀 Было SPACING.sm
     },
-    leftSide: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+    leftSide: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    rightSide: { alignItems: 'flex-end' }, // 🚀 Новое: сумма + процент справа
     iconWrapper: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
+      width: 24, // 🚀 Было 32
+      height: 24,
+      borderRadius: 6,
       justifyContent: 'center',
       alignItems: 'center',
     },
-    label: { ...TYPOGRAPHY.body, color: colors.textMain, fontWeight: '500' },
-    amount: { ...TYPOGRAPHY.subtitle, color: colors.textMain, fontSize: 16 },
-    progressTrack: {
-      height: 8,
-      backgroundColor: colors.background,
-      borderRadius: 4,
-      overflow: 'hidden',
-      marginBottom: SPACING.xs,
-    },
-    progressFill: { height: '100%', borderRadius: 4 },
+    label: {
+      ...TYPOGRAPHY.body,
+      color: colors.textMain,
+      fontWeight: '500',
+      fontSize: 14,
+    }, // 🚀 Было 16
+    amount: { ...TYPOGRAPHY.subtitle, color: colors.textMain, fontSize: 14 }, // 🚀 Было 16
     percentageText: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      fontSize: 12,
+      fontSize: 11, // 🚀 Было 12
     },
+    progressTrack: {
+      height: 6, // 🚀 Было 8
+      backgroundColor: colors.background,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    progressFill: { height: '100%', borderRadius: 3 },
   })
