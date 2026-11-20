@@ -13,19 +13,13 @@ import { ru } from 'date-fns/locale'
 import { Subscription } from '../types'
 import { getBrandData, getBrandBackground } from '../utils/brandUtils'
 import { BrandIcon } from './ui/BrandIcon'
-import { formatPrice } from '../utils/formatUtils'
+import { formatPrice, formatCurrency } from '../utils/formatUtils' // 🚀 Добавили formatCurrency
 import { useSettingsStore } from '../store/useSettingsStore'
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../theme'
 import { useTheme } from '../theme/ThemeContext'
 
 interface SubscriptionCardProps {
   subscription: Subscription
-}
-
-const getCurrencySymbol = (curr: string) => {
-  if (curr === 'USD') return '$'
-  if (curr === 'EUR') return '€'
-  return '₽'
 }
 
 export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
@@ -93,10 +87,11 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             ? 'завтра'
             : `через ${daysLeft} дн.`
 
+      // 🚀 Исправлен баг: теперь используется formatCurrency вместо хардкода рублей
       const priceText =
         isTrial && subscription.regularPrice
-          ? ` Далее спишут ${formatPrice(subscription.regularPrice)}.`
-          : ` Спишут ${formatPrice(displayPrice)}.`
+          ? ` Далее спишут ${formatCurrency(subscription.regularPrice, subscription.currency)}.`
+          : ` Спишут ${formatCurrency(displayPrice, subscription.currency)}.`
 
       Alert.alert(
         isTrial ? 'Триал скоро закончится ⏳' : 'Скоро списание! 💸',
@@ -118,8 +113,6 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         color: isTrial ? colors.danger : '#F97316',
       }
     : null
-
-  const symbol = getCurrencySymbol(subscription.currency)
 
   return (
     <View style={styles.card}>
@@ -167,29 +160,44 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         </View>
       </View>
 
+      {/* 🚀 ОПТИМИЗИРОВАННЫЙ БЛОК ЦЕНЫ */}
       <View style={styles.rightSide}>
-        <Text
-          style={styles.price}
-          numberOfLines={1}
-          adjustsFontSizeToFit={true}
-        >
-          {displayPrice === 0 ? 'Бесплатно' : `${displayPrice} ${symbol}`}
-          {subscription.billingCycle === 'yearly' && (
-            <Text style={styles.cycleText}>/год</Text>
-          )}
-        </Text>
+        {isTrial && subscription.regularPrice ? (
+          // Компактный вид для триала: будущая цена (она важнее для бюджета),
+          // а "бесплатно" делаем маленькой припиской. Это выравнивает высоту карточки!
+          <>
+            <Text
+              style={[styles.price, { fontSize: 15, color: colors.textMain }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {formatCurrency(subscription.regularPrice, subscription.currency)}
+            </Text>
+            <Text style={styles.trialHintText}>сейчас бесплатно</Text>
+          </>
+        ) : (
+          // Обычный вид для платных или полностью бесплатных подписок
+          <>
+            <Text
+              style={styles.price}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+            >
+              {displayPrice === 0
+                ? 'Бесплатно'
+                : `${displayPrice} ${getCurrencySymbol(subscription.currency)}`}
+              {subscription.billingCycle === 'yearly' && (
+                <Text style={styles.cycleText}>/год</Text>
+              )}
+            </Text>
 
-        {/* 🚀 Показываем пересчет только если цена больше 0 */}
-        {subscription.currency !== 'RUB' && displayPrice > 0 && (
-          <Text style={styles.rubPriceText}>
-            ≈ {formatPrice(convertToRub(displayPrice, subscription.currency))}
-          </Text>
-        )}
-
-        {isTrial && subscription.regularPrice && (
-          <Text style={styles.regularPriceText} numberOfLines={1}>
-            Далее: {subscription.regularPrice} {symbol}
-          </Text>
+            {subscription.currency !== 'RUB' && displayPrice > 0 && (
+              <Text style={styles.rubPriceText}>
+                ≈{' '}
+                {formatPrice(convertToRub(displayPrice, subscription.currency))}
+              </Text>
+            )}
+          </>
         )}
       </View>
     </View>
@@ -259,9 +267,11 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
-    regularPriceText: {
+    // 🚀 Новый стиль для компактной приписки триала
+    trialHintText: {
       fontSize: 11,
-      color: colors.textSecondary,
+      color: colors.accent, // Зеленый цвет подчеркивает выгоду
       marginTop: 2,
+      fontWeight: '500',
     },
   })

@@ -105,7 +105,7 @@ export const SubscriptionDetailsScreen: React.FC<
             ? 'завтра'
             : `через ${daysLeft} дн.`
       const priceText = subscription.regularPrice
-        ? ` Далее спишут ${formatPrice(subscription.regularPrice)}.`
+        ? ` Далее спишут ${formatCurrency(subscription.regularPrice, subscription.currency)}.`
         : ''
       Alert.alert(
         'Триал скоро закончится ⏳',

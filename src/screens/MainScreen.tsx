@@ -6,15 +6,15 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
+  AppState,
+  AppStateStatus,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { BannerView, BannerAdSize } from 'yandex-mobile-ads'
 import { useDashboard } from '../hooks/useDashboard'
 import { usePremiumStore } from '../store/usePremiumStore'
-import { useSubscriptionStore } from '../store/useSubscriptionStore' // 🚀 Для isHydrated
 import { UndoSnackbar } from '../components/ui/UndoSnackbar'
 import { SwipeableCard } from '../components/ui/SwipeableCard'
-import { SkeletonCard } from '../components/ui/SkeletonCard' // 🚀 Скелетон
 import { formatPrice } from '../utils/formatUtils'
 import {
   SPACING,
@@ -25,6 +25,7 @@ import {
 } from '../theme'
 import { useTheme } from '../theme/ThemeContext'
 import { Subscription } from '../types'
+import { useSubscriptionStore } from '../store/useSubscriptionStore'
 
 interface MainScreenProps {
   onAddPress: () => void
@@ -49,9 +50,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const styles = useMemo(() => createStyles(colors), [colors])
   const { isPremium } = usePremiumStore()
 
-  // 🚀 Проверяем, загружены ли данные из AsyncStorage
-  const isHydrated = useSubscriptionStore((state) => state.isHydrated)
-
   const {
     subscriptions,
     removeSubscription,
@@ -69,12 +67,28 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const [openCardId, setOpenCardId] = useState<string | null>(null)
   const [adSize, setAdSize] = useState<BannerAdSize | null>(null)
+  // 🚀 Флаг: баннер не загрузился (нет сети / ошибка SDK)
+  const [bannerFailed, setBannerFailed] = useState(false)
 
+  // 🚀 Получаем размер баннера при маунте
   useEffect(() => {
     BannerAdSize.stickySize(Dimensions.get('window').width)
       .then((size) => setAdSize(size))
       .catch((err) => console.error('❌ Ошибка размера баннера:', err))
   }, [])
+
+  // 🚀 При возврате в active — сбрасываем флаг ошибки, чтобы баннер попробовал загрузиться снова
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      'change',
+      (nextState: AppStateStatus) => {
+        if (nextState === 'active' && bannerFailed) {
+          setBannerFailed(false)
+        }
+      },
+    )
+    return () => subscription.remove()
+  }, [bannerFailed])
 
   useEffect(() => {
     return () => {
@@ -121,49 +135,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     ),
     [onOpenDetails, handleDelete, colors, openCardId],
   )
-
-  // 🚀 Показываем скелетон пока данные не загружены из AsyncStorage
-  if (!isHydrated) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.headerSide}>
-            <View style={[styles.iconBtn, { backgroundColor: colors.card }]} />
-          </View>
-          <View style={styles.headerTitleContainer}>
-            <View
-              style={[styles.skeletonTitle, { backgroundColor: colors.border }]}
-            />
-          </View>
-          <View style={[styles.headerSide, { alignItems: 'flex-end' }]}>
-            <View style={styles.iconBtnPrimary} />
-          </View>
-        </View>
-
-        <View
-          style={[styles.skeletonCard, { backgroundColor: colors.border }]}
-        />
-        <View
-          style={[styles.skeletonCardSmall, { backgroundColor: colors.border }]}
-        />
-
-        <FlatList
-          style={{ flex: 1 }}
-          data={[1, 2, 3]} // 3 скелетона
-          keyExtractor={(item) => item.toString()}
-          renderItem={() => <SkeletonCard />}
-          contentContainerStyle={{
-            paddingHorizontal: SPACING.lg,
-            paddingTop: SPACING.xs,
-            paddingBottom: 20,
-          }}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          overScrollMode='never'
-        />
-      </View>
-    )
-  }
 
   return (
     <View style={styles.container}>
@@ -272,15 +243,21 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         />
       )}
 
-      {!isPremium && adSize && (
+      {/* 🚀 Баннер рендерится только если: не премиум + размер известен + не было ошибки */}
+      {!isPremium && adSize && !bannerFailed && (
         <View style={styles.adContainer}>
           <BannerView
             size={adSize}
             adRequest={{ adUnitId: 'R-M-20431707-1' }}
-            onAdLoaded={() => console.log('✅ Баннер загружен')}
-            onAdFailedToLoad={(error) =>
+            onAdLoaded={() => {
+              console.log('✅ Баннер загружен')
+              setBannerFailed(false)
+            }}
+            onAdFailedToLoad={(error) => {
               console.log('❌ Ошибка баннера:', error)
-            }
+              // 🚀 Скрываем контейнер, чтобы не было "дыры" в UI
+              setBannerFailed(true)
+            }}
           />
         </View>
       )}
@@ -319,11 +296,6 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.title,
       color: colors.textMain,
       fontSize: 22,
-    },
-    skeletonTitle: {
-      height: 22,
-      borderRadius: 4,
-      width: '50%',
     },
     proBadge: {
       backgroundColor: '#F59E0B',
@@ -465,19 +437,5 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       paddingVertical: 4,
       backgroundColor: colors.background,
-    },
-
-    // 🚀 Стили для скелетона карточек (заглушки)
-    skeletonCard: {
-      height: 120,
-      borderRadius: BORDER_RADIUS.xl,
-      marginHorizontal: SPACING.lg,
-      marginBottom: SPACING.sm,
-    },
-    skeletonCardSmall: {
-      height: 48,
-      borderRadius: BORDER_RADIUS.lg,
-      marginHorizontal: SPACING.lg,
-      marginBottom: SPACING.sm,
     },
   })

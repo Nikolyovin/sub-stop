@@ -1,4 +1,4 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Learn more: https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
 node_modules/
@@ -13,6 +13,7 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
@@ -30,7 +31,9 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (🚀 ИСПРАВЛЕНО: теперь игнорирует любой .env файл)
+.env
+.env*
 .env*.local
 
 # typescript
