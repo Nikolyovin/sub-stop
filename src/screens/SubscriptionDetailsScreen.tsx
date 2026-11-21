@@ -237,7 +237,9 @@ export const SubscriptionDetailsScreen: React.FC<
             )}
           </View>
 
-          {isTrial && costs.futureMonthly > costs.monthly ? (
+          {isTrial &&
+          subscription.regularPrice &&
+          subscription.regularPrice !== subscription.price ? (
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>
                 После триала {isYearly ? "(в год)" : ""}
