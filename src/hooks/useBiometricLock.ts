@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
 import { useSecurityStore } from "../store/useSecurityStore";
 
 const GRACE_PERIOD_MS = 30000;
+
+// 🚀 ВЫНОСИМ РЕФ НА УРОВЕНЬ МОДУЛЯ, чтобы хук рекламы мог его сбрасывать
+export const backgroundTimestampRef = { current: null as number | null };
 
 export const useBiometricLock = () => {
   const { isLockEnabled, isUnlocked, setLockEnabled, setUnlocked } =
@@ -12,8 +15,6 @@ export const useBiometricLock = () => {
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isCheckingHardware, setIsCheckingHardware] = useState(true);
-
-  const backgroundTimestamp = useRef<number | null>(null);
 
   useEffect(() => {
     const checkAvailability = async () => {
@@ -25,23 +26,20 @@ export const useBiometricLock = () => {
     checkAvailability();
   }, []);
 
-  // 🚀 УДАЛЕНО: проблемный useEffect с [], который блокировал приложение при открытии Настроек
-
-  // 🚀 ОСТАВЛЯЕМ: проверка только при сворачивании/разворачивании приложения
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
       (nextState: AppStateStatus) => {
         if (isLockEnabled) {
           if (nextState === "background" || nextState === "inactive") {
-            backgroundTimestamp.current = Date.now();
+            backgroundTimestampRef.current = Date.now();
           } else if (nextState === "active") {
-            if (backgroundTimestamp.current !== null) {
-              const timeAway = Date.now() - backgroundTimestamp.current;
+            if (backgroundTimestampRef.current !== null) {
+              const timeAway = Date.now() - backgroundTimestampRef.current;
               if (timeAway > GRACE_PERIOD_MS) {
-                setUnlocked(false); // Блокировка при долгом пребывании в фоне (> 30 сек)
+                setUnlocked(false);
               }
-              backgroundTimestamp.current = null;
+              backgroundTimestampRef.current = null;
             }
           }
         }

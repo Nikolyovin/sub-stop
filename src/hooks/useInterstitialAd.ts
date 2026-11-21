@@ -3,12 +3,13 @@ import { AppState, AppStateStatus } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { InterstitialAd, InterstitialAdLoader } from "yandex-mobile-ads";
 import { usePremiumStore } from "../store/usePremiumStore";
+import { backgroundTimestampRef } from "./useBiometricLock"; // 🚀 ДОБАВЛЕНО
 
 const AD_KEY = "@sub_stop_last_ad_shown";
 const ACTION_COOLDOWN_MS = 10 * 60 * 1000;
 const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const RETRY_DELAY_MS = 30 * 1000;
-const MAX_RETRIES = 3; // 🚀 Максимум 3 попытки
+const MAX_RETRIES = 3;
 
 const INTERSTITIAL_AD_UNIT_ID = "R-M-20431707-2";
 
@@ -18,7 +19,7 @@ export const useInterstitialAd = () => {
   const isLoadingRef = useRef(false);
   const isShowingRef = useRef(false);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryCountRef = useRef(0); // 🚀 Счетчик попыток
+  const retryCountRef = useRef(0);
 
   const loadAd = async () => {
     if (isPremium || isLoadingRef.current || interstitialRef.current) return;
@@ -32,6 +33,9 @@ export const useInterstitialAd = () => {
 
       ad.onAdShown = () => {
         isShowingRef.current = true;
+        // 🚀 ГЛАВНЫЙ ФИКС: сбрасываем таймер биометрии.
+        // Просмотр рекламы не должен считаться "отсутствием пользователя в приложении"
+        backgroundTimestampRef.current = null;
       };
 
       ad.onAdDismissed = () => {
@@ -46,12 +50,11 @@ export const useInterstitialAd = () => {
       };
 
       interstitialRef.current = ad;
-      retryCountRef.current = 0; // 🚀 Сбрасываем счетчик при успехе
+      retryCountRef.current = 0;
       console.log("✅ Interstitial загружен и готов к показу");
     } catch (error) {
       console.warn("⚠️ Interstitial не загрузился:", error);
 
-      // 🚀 Проверяем, не превысили ли мы лимит попыток
       if (retryCountRef.current < MAX_RETRIES) {
         if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = setTimeout(() => {
@@ -78,7 +81,6 @@ export const useInterstitialAd = () => {
     const subscription = AppState.addEventListener(
       "change",
       (nextState: AppStateStatus) => {
-        // 🚀 При возврате в приложение сбрасываем счетчик и пробуем снова
         if (nextState === "active") {
           retryCountRef.current = 0;
           if (!interstitialRef.current && !isLoadingRef.current) {
