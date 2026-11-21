@@ -173,8 +173,8 @@ const createStyles = (colors: ThemeColors) =>
     title: {
       ...TYPOGRAPHY.title,
       color: colors.textMain,
-      fontSize: 22,
-      marginBottom: SPACING.md,
+      fontSize: 20, // 🚀 Чуть уменьшили заголовок для экономии места
+      marginBottom: SPACING.sm, // 🚀 Уменьшили отступ до поиска
     },
     searchContainer: {
       flexDirection: "row",
@@ -182,7 +182,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
       paddingHorizontal: SPACING.md,
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm, // 🚀 Уменьшили отступ
       height: 48,
       borderWidth: 1,
       borderColor: colors.border,
@@ -210,22 +210,28 @@ const createStyles = (colors: ThemeColors) =>
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: SPACING.md,
+      gap: 10, // 🚀 ГЛАВНОЕ: уменьшили gap с SPACING.md (16) до 10px
       paddingBottom: SPACING.xl,
     },
-    brandCard: { width: "30%", alignItems: "center", marginBottom: SPACING.md },
+    brandCard: {
+      width: "31%", // 🚀 31% * 3 = 93% + 20px (два gap по 10px) = идеально влезает в любой экран
+      alignItems: "center",
+      marginBottom: SPACING.md,
+    },
     iconWrapper: {
-      width: 60,
-      height: 60,
-      borderRadius: 16,
+      width: 52, // 🚀 Уменьшили с 60 до 52 (идеальный размер для 3 колонок)
+      height: 52,
+      borderRadius: 14, // 🚀 Скругление под новый размер
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: SPACING.xs,
+      marginBottom: 6,
     },
     brandName: {
       ...TYPOGRAPHY.caption,
       color: colors.textMain,
       textAlign: "center",
+      fontSize: 11, // 🚀 Чуть компактнее
+      lineHeight: 14, // 🚀 Чтобы длинные названия (в 2 строки) не разъезжались
     },
     emptyState: { alignItems: "center", marginTop: SPACING.xl },
     emptyText: {

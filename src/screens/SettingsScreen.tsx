@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -11,39 +11,41 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-} from 'react-native'
-import Constants from 'expo-constants'
-import DateTimePicker from '@react-native-community/datetimepicker'
-import { Ionicons } from '@expo/vector-icons'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useTheme } from '../theme/ThemeContext'
-import { useSettingsStore } from '../store/useSettingsStore'
-import { useSecurityStore } from '../store/useSecurityStore'
-import { useBiometricLock } from '../hooks/useBiometricLock'
-import { usePremiumStore } from '../store/usePremiumStore'
-import { fetchAndSaveRates } from '../services/currencyService'
-import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from '../theme'
+} from "react-native";
+import Constants from "expo-constants";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTheme } from "../theme/ThemeContext";
+import { useSettingsStore } from "../store/useSettingsStore";
+import { useSecurityStore } from "../store/useSecurityStore";
+import { useBiometricLock } from "../hooks/useBiometricLock";
+import { usePremiumStore } from "../store/usePremiumStore";
+import { fetchAndSaveRates } from "../services/currencyService";
+import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from "../theme";
 
-const API_URL = 'https://sub-stop-server-nikolyovin.msk1.amvera.tech'
+const API_URL = "https://sub-stop-server-nikolyovin.msk1.amvera.tech";
 
 interface SettingsScreenProps {
-  onBack: () => void
-  onOpenPremium: () => void
+  onBack: () => void;
+  onOpenPremium: () => void;
 }
 
-// 🚀 Вспомогательный компонент для группировки настроек в одну карточку (как в iOS)
+// 🚀 Вспомогательный компонент для группировки настроек в одну карточку
 const SettingsGroup = ({
   title,
   children,
+  styles,
 }: {
-  title?: string
-  children: React.ReactNode
+  title?: string;
+  children: React.ReactNode;
+  styles: any;
 }) => (
   <View style={styles.groupContainer}>
     {title && <Text style={styles.groupTitle}>{title}</Text>}
     <View style={styles.groupCard}>{children}</View>
   </View>
-)
+);
 
 // 🚀 Вспомогательный компонент для строки внутри группы
 const SettingsItem = ({
@@ -56,18 +58,21 @@ const SettingsItem = ({
   isDestructive = false,
   rightElement,
   isLoading = false,
+  styles,
+  colors,
 }: {
-  icon: string
-  title: string
-  subtitle?: string
-  value?: boolean
-  onToggle?: () => void
-  onPress?: () => void
-  isDestructive?: boolean
-  rightElement?: React.ReactNode
-  isLoading?: boolean
+  icon: string;
+  title: string;
+  subtitle?: string;
+  value?: boolean;
+  onToggle?: () => void;
+  onPress?: () => void;
+  isDestructive?: boolean;
+  rightElement?: React.ReactNode;
+  isLoading?: boolean;
+  styles: any;
+  colors: any;
 }) => {
-  const { colors } = useTheme()
   return (
     <TouchableOpacity
       style={[styles.itemRow, onPress && { opacity: 0.9 }]}
@@ -103,7 +108,7 @@ const SettingsItem = ({
 
       {isLoading ? (
         <ActivityIndicator
-          size='small'
+          size="small"
           color={colors.primary}
           style={styles.rightElement}
         />
@@ -127,25 +132,25 @@ const SettingsItem = ({
         </View>
       ) : (
         <Ionicons
-          name='chevron-forward'
+          name="chevron-forward"
           size={20}
           color={colors.textSecondary}
         />
       )}
     </TouchableOpacity>
-  )
-}
+  );
+};
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onBack,
   onOpenPremium,
 }) => {
-  const { theme, toggleTheme, colors } = useTheme()
-  const [showTimePicker, setShowTimePicker] = useState(false)
-  const [showRestoreModal, setShowRestoreModal] = useState(false)
-  const [restoreEmail, setRestoreEmail] = useState('')
-  const [isRestoring, setIsRestoring] = useState(false)
-  const [isUpdatingRates, setIsUpdatingRates] = useState(false)
+  const { theme, toggleTheme, colors } = useTheme();
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreEmail, setRestoreEmail] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [isUpdatingRates, setIsUpdatingRates] = useState(false);
 
   const {
     notifyTrials,
@@ -157,134 +162,134 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setReminderTime,
     usdRate,
     eurRate,
-  } = useSettingsStore()
+  } = useSettingsStore();
 
-  const { isLockEnabled } = useSecurityStore()
+  const { isLockEnabled } = useSecurityStore();
   const { isBiometricAvailable, toggleLock, isCheckingHardware } =
-    useBiometricLock()
-  const { isPremium, setPremium, getDeviceId } = usePremiumStore()
+    useBiometricLock();
+  const { isPremium, setPremium, getDeviceId } = usePremiumStore();
 
-  const styles = useMemo(() => createStyles(colors), [colors])
-  const isAnyNotificationEnabled = notifyTrials || notifyRegular
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const isAnyNotificationEnabled = notifyTrials || notifyRegular;
   const reminderDate = useMemo(() => {
-    const d = new Date()
-    d.setHours(reminderHour, reminderMinute)
-    return d
-  }, [reminderHour, reminderMinute])
+    const d = new Date();
+    d.setHours(reminderHour, reminderMinute);
+    return d;
+  }, [reminderHour, reminderMinute]);
 
   const onTimeChange = (event: any, date?: Date) => {
-    if (Platform.OS === 'android') setShowTimePicker(false)
-    if (date) setReminderTime(date.getHours(), date.getMinutes())
-  }
+    if (Platform.OS === "android") setShowTimePicker(false);
+    if (date) setReminderTime(date.getHours(), date.getMinutes());
+  };
 
   const handleUpdateRates = async () => {
-    setIsUpdatingRates(true)
-    const success = await fetchAndSaveRates()
-    setIsUpdatingRates(false)
+    setIsUpdatingRates(true);
+    const success = await fetchAndSaveRates();
+    setIsUpdatingRates(false);
     if (!success)
-      Alert.alert('Ошибка', 'Не удалось обновить курсы. Проверьте интернет.')
-  }
+      Alert.alert("Ошибка", "Не удалось обновить курсы. Проверьте интернет.");
+  };
 
   // 🚀 НОВАЯ ЛОГИКА: Сброс только локальных данных (Премиум сохраняется)
   const handleResetApp = async () => {
     Alert.alert(
-      'Сбросить приложение?',
-      'Это удалит все ваши подписки, настройки и календарь. \n\n✅ Ваш Премиум-статус будет сохранен.',
+      "Сбросить приложение?",
+      "Это удалит все ваши подписки, настройки и календарь. \n\n✅ Ваш Премиум-статус будет сохранен.",
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: "Отмена", style: "cancel" },
         {
-          text: 'Сбросить',
-          style: 'destructive',
+          text: "Сбросить",
+          style: "destructive",
           onPress: async () => {
             try {
-              const currentPremiumStatus = isPremium // Запоминаем статус
-              await AsyncStorage.clear() // Очищаем всё
-              setPremium(currentPremiumStatus) // Восстанавливаем флаг премиума
+              const currentPremiumStatus = isPremium; // Запоминаем статус
+              await AsyncStorage.clear(); // Очищаем всё
+              setPremium(currentPremiumStatus); // Восстанавливаем флаг премиума
               Alert.alert(
-                'Готово',
-                'Приложение сброшено. Премиум-статус сохранен.',
-              )
-              onBack()
+                "Готово",
+                "Приложение сброшено. Премиум-статус сохранен.",
+              );
+              onBack();
             } catch (error) {
-              Alert.alert('Ошибка', 'Не удалось сбросить данные.')
+              Alert.alert("Ошибка", "Не удалось сбросить данные.");
             }
           },
         },
       ],
-    )
-  }
+    );
+  };
 
   // 🚀 НОВАЯ ЛОГИКА: Полное удаление с сервера (Премиум теряется)
   const handleDeleteAllData = () => {
     Alert.alert(
-      '⚠️ Удалить аккаунт и данные?',
-      'Это действие НЕОБРАТИМО.\n\n1. Все подписки будут удалены.\n2. Данные о покупке (Email, Device ID) будут навсегда удалены с нашего сервера в соответствии с 152-ФЗ.\n\n❌ Вы НЕ сможете автоматически восстановить Премиум-статус в будущем.',
+      "⚠️ Удалить аккаунт и данные?",
+      "Это действие НЕОБРАТИМО.\n\n1. Все подписки будут удалены.\n2. Данные о покупке (Email, Device ID) будут навсегда удалены с нашего сервера в соответствии с 152-ФЗ.\n\n❌ Вы НЕ сможете автоматически восстановить Премиум-статус в будущем.",
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: "Отмена", style: "cancel" },
         {
-          text: 'Да, удалить всё',
-          style: 'destructive',
+          text: "Да, удалить всё",
+          style: "destructive",
           onPress: async () => {
             try {
               await fetch(`${API_URL}/api/delete-data`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ device_id: getDeviceId() }),
-              })
-              await AsyncStorage.clear()
-              setPremium(false)
+              });
+              await AsyncStorage.clear();
+              setPremium(false);
               Alert.alert(
-                'Готово',
-                'Все данные удалены. Приложение будет закрыто.',
-                [{ text: 'ОК', onPress: () => onBack() }],
-              )
+                "Готово",
+                "Все данные удалены. Приложение будет закрыто.",
+                [{ text: "ОК", onPress: () => onBack() }],
+              );
             } catch (error) {
-              Alert.alert('Ошибка', 'Не удалось связаться с сервером.')
+              Alert.alert("Ошибка", "Не удалось связаться с сервером.");
             }
           },
         },
       ],
-    )
-  }
+    );
+  };
 
   const handleRestore = async () => {
-    if (!restoreEmail.includes('@')) {
-      Alert.alert('Ошибка', 'Введите корректный Email')
-      return
+    if (!restoreEmail.includes("@")) {
+      Alert.alert("Ошибка", "Введите корректный Email");
+      return;
     }
-    setIsRestoring(true)
+    setIsRestoring(true);
     try {
       const response = await fetch(`${API_URL}/api/restore-premium`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: restoreEmail,
           new_device_id: getDeviceId(),
         }),
-      })
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (data.isPremium) {
-        setPremium(true)
-        setShowRestoreModal(false)
-        Alert.alert('Успех', 'Покупка восстановлена! Премиум снова активен.')
+        setPremium(true);
+        setShowRestoreModal(false);
+        Alert.alert("Успех", "Покупка восстановлена! Премиум снова активен.");
       } else {
         Alert.alert(
-          'Не найдено',
-          data.message || 'Покупок с таким email не найдено.',
-        )
+          "Не найдено",
+          data.message || "Покупок с таким email не найдено.",
+        );
       }
     } catch (error) {
-      Alert.alert('Ошибка', 'Не удалось связаться с сервером.')
+      Alert.alert("Ошибка", "Не удалось связаться с сервером.");
     } finally {
-      setIsRestoring(false)
+      setIsRestoring(false);
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name='arrow-back' size={24} color={colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Настройки</Text>
         <View style={{ width: 44 }} />
@@ -294,37 +299,45 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <SettingsGroup title='Основные'>
+        <SettingsGroup title="Основные" styles={styles}>
           <SettingsItem
-            icon='moon-outline'
-            title='Темная тема'
-            value={theme === 'dark'}
+            icon="moon-outline"
+            title="Темная тема"
+            value={theme === "dark"}
             onToggle={toggleTheme}
+            styles={styles}
+            colors={colors}
           />
           {(isBiometricAvailable || isCheckingHardware) && (
             <SettingsItem
-              icon='finger-print-outline'
-              title='Вход по биометрии'
+              icon="finger-print-outline"
+              title="Вход по биометрии"
               value={isLockEnabled}
               onToggle={() => toggleLock(!isLockEnabled)}
               isLoading={isCheckingHardware}
+              styles={styles}
+              colors={colors}
             />
           )}
         </SettingsGroup>
 
-        <SettingsGroup title='Уведомления'>
+        <SettingsGroup title="Уведомления" styles={styles}>
           <SettingsItem
-            icon='time-outline'
-            title='Обычные подписки'
+            icon="time-outline"
+            title="Обычные подписки"
             value={notifyRegular}
             onToggle={toggleNotifyRegular}
+            styles={styles}
+            colors={colors}
           />
           <View style={styles.divider} />
           <SettingsItem
-            icon='alert-circle-outline'
-            title='Пробные периоды (Триалы)'
+            icon="alert-circle-outline"
+            title="Пробные периоды (Триалы)"
             value={notifyTrials}
             onToggle={toggleNotifyTrials}
+            styles={styles}
+            colors={colors}
           />
           <View style={styles.divider} />
           <TouchableOpacity
@@ -334,7 +347,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           >
             <View style={styles.iconBox}>
               <Ionicons
-                name='alarm-outline'
+                name="alarm-outline"
                 size={20}
                 color={
                   isAnyNotificationEnabled
@@ -359,11 +372,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 !isAnyNotificationEnabled && { color: colors.textSecondary },
               ]}
             >
-              {reminderHour.toString().padStart(2, '0')}:
-              {reminderMinute.toString().padStart(2, '0')}
+              {reminderHour.toString().padStart(2, "0")}:
+              {reminderMinute.toString().padStart(2, "0")}
             </Text>
             <Ionicons
-              name='chevron-forward'
+              name="chevron-forward"
               size={20}
               color={colors.textSecondary}
             />
@@ -373,78 +386,90 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         {showTimePicker && (
           <DateTimePicker
             value={reminderDate}
-            mode='time'
-            display='default'
+            mode="time"
+            display="default"
             onValueChange={onTimeChange}
             onDismiss={() => setShowTimePicker(false)}
           />
         )}
 
-        <SettingsGroup title='Финансы и данные'>
+        <SettingsGroup title="Финансы и данные" styles={styles}>
           <SettingsItem
-            icon='refresh-outline'
-            title='Курсы валют'
+            icon="refresh-outline"
+            title="Курсы валют"
             subtitle={`USD: ${usdRate.toFixed(2)} ₽ • EUR: ${eurRate.toFixed(2)} ₽`}
             onPress={handleUpdateRates}
             isLoading={isUpdatingRates}
+            styles={styles}
+            colors={colors}
           />
           <View style={styles.divider} />
           <SettingsItem
-            icon={isPremium ? 'star' : 'star-outline'}
-            title={isPremium ? 'Премиум активен' : 'Купить Премиум'}
+            icon={isPremium ? "star" : "star-outline"}
+            title={isPremium ? "Премиум активен" : "Купить Премиум"}
             onPress={onOpenPremium}
             rightElement={
               isPremium ? (
                 <Text style={styles.activeBadge}>Активен</Text>
               ) : undefined
             }
+            styles={styles}
+            colors={colors}
           />
           <View style={styles.divider} />
           <SettingsItem
-            icon='download-outline'
-            title='Восстановить покупку'
-            subtitle='Если сменили устройство'
+            icon="download-outline"
+            title="Восстановить покупку"
+            subtitle="Если сменили устройство"
             onPress={() => setShowRestoreModal(true)}
+            styles={styles}
+            colors={colors}
           />
         </SettingsGroup>
 
-        <SettingsGroup title='Управление данными'>
+        <SettingsGroup title="Управление данными" styles={styles}>
           <SettingsItem
-            icon='trash-outline'
-            title='Сбросить приложение'
-            subtitle='Удалить подписки, сохранить Премиум'
+            icon="trash-outline"
+            title="Сбросить приложение"
+            subtitle="Удалить подписки, сохранить Премиум"
             onPress={handleResetApp}
+            styles={styles}
+            colors={colors}
           />
           <View style={styles.divider} />
           <SettingsItem
-            icon='close-circle-outline'
-            title='Удалить аккаунт и данные'
-            subtitle='Полное удаление с сервера (152-ФЗ)'
+            icon="close-circle-outline"
+            title="Удалить аккаунт и данные"
+            subtitle="Полное удаление с сервера (152-ФЗ)"
             isDestructive
             onPress={handleDeleteAllData}
+            styles={styles}
+            colors={colors}
           />
         </SettingsGroup>
 
-        <SettingsGroup title='О приложении'>
+        <SettingsGroup title="О приложении" styles={styles}>
           <SettingsItem
-            icon='shield-checkmark-outline'
-            title='Политика конфиденциальности'
+            icon="shield-checkmark-outline"
+            title="Политика конфиденциальности"
             onPress={() =>
-              Linking.openURL('https://nikolyovin.github.io/sub-stop-privacy/')
+              Linking.openURL("https://nikolyovin.github.io/sub-stop-privacy/")
             }
+            styles={styles}
+            colors={colors}
           />
         </SettingsGroup>
 
         <Text style={styles.versionText}>
-          Версия {Constants.expoConfig?.version || '1.0.0'}
+          Версия {Constants.expoConfig?.version || "1.0.0"}
         </Text>
 
         {/* 🚀 ВРЕМЕННАЯ КНОПКА ДЛЯ ТЕСТА (Удалить перед релизом!) */}
         <TouchableOpacity
           style={styles.devButton}
           onPress={() => {
-            setPremium(!isPremium)
-            Alert.alert('Dev Mode', `Премиум ${!isPremium ? 'ВКЛ' : 'ВЫКЛ'}`)
+            setPremium(!isPremium);
+            Alert.alert("Dev Mode", `Премиум ${!isPremium ? "ВКЛ" : "ВЫКЛ"}`);
           }}
         >
           <Text style={styles.devButtonText}>[DEV] Переключить Премиум</Text>
@@ -452,7 +477,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       </ScrollView>
 
       {/* Модалка восстановления покупки */}
-      <Modal visible={showRestoreModal} transparent animationType='fade'>
+      <Modal visible={showRestoreModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Восстановление покупки</Text>
@@ -461,10 +486,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             </Text>
             <TextInput
               style={styles.input}
-              placeholder='example@mail.com'
+              placeholder="example@mail.com"
               placeholderTextColor={colors.textSecondary}
-              keyboardType='email-address'
-              autoCapitalize='none'
+              keyboardType="email-address"
+              autoCapitalize="none"
               value={restoreEmail}
               onChangeText={setRestoreEmail}
             />
@@ -474,7 +499,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 onPress={() => setShowRestoreModal(false)}
                 disabled={isRestoring}
               >
-                <Text style={{ color: colors.textMain, fontWeight: 'bold' }}>
+                <Text style={{ color: colors.textMain, fontWeight: "bold" }}>
                   Отмена
                 </Text>
               </TouchableOpacity>
@@ -484,9 +509,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 disabled={isRestoring}
               >
                 {isRestoring ? (
-                  <ActivityIndicator color='#fff' />
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                  <Text style={{ color: "#fff", fontWeight: "bold" }}>
                     Восстановить
                   </Text>
                 )}
@@ -496,26 +521,26 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </View>
       </Modal>
     </View>
-  )
-}
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: SPACING.lg,
       height: 56,
-      marginTop: Platform.OS === 'ios' ? 50 : 10,
+      marginTop: Platform.OS === "ios" ? 50 : 10,
       marginBottom: SPACING.sm,
     },
     backButton: {
       width: 44,
       height: 44,
-      justifyContent: 'center',
-      alignItems: 'flex-start',
+      justifyContent: "center",
+      alignItems: "flex-start",
     },
     headerTitle: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 20 },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
@@ -525,27 +550,27 @@ const createStyles = (colors: ThemeColors) =>
     groupTitle: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       marginBottom: 6,
       marginLeft: 4,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     groupCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.lg,
       borderWidth: 1,
       borderColor: colors.border,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
     itemRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingVertical: 14,
       paddingHorizontal: SPACING.md,
     },
     customItemRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingVertical: 14,
       paddingHorizontal: SPACING.md,
     },
@@ -559,8 +584,8 @@ const createStyles = (colors: ThemeColors) =>
       width: 32,
       height: 32,
       borderRadius: 8,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       marginRight: SPACING.md,
     },
     textContainer: { flex: 1 },
@@ -568,7 +593,7 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.body,
       color: colors.textMain,
       fontSize: 15,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     itemSubtitle: {
       ...TYPOGRAPHY.caption,
@@ -579,16 +604,16 @@ const createStyles = (colors: ThemeColors) =>
     itemValue: {
       ...TYPOGRAPHY.body,
       color: colors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
       marginRight: 8,
     },
-    rightElement: { marginLeft: 'auto' },
+    rightElement: { marginLeft: "auto" },
 
     activeBadge: {
       backgroundColor: `${colors.accent}20`,
       color: colors.accent,
       fontSize: 12,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
@@ -599,15 +624,15 @@ const createStyles = (colors: ThemeColors) =>
       width: 44,
       height: 24,
       borderRadius: 12,
-      justifyContent: 'center',
+      justifyContent: "center",
       padding: 2,
     },
     toggleThumb: {
       width: 20,
       height: 20,
       borderRadius: 10,
-      backgroundColor: '#FFFFFF',
-      shadowColor: '#000',
+      backgroundColor: "#FFFFFF",
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.2,
       shadowRadius: 2,
@@ -617,7 +642,7 @@ const createStyles = (colors: ThemeColors) =>
     versionText: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      textAlign: 'center',
+      textAlign: "center",
       marginTop: SPACING.md,
       marginBottom: SPACING.xl,
     },
@@ -627,21 +652,21 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: BORDER_RADIUS.md,
       borderWidth: 1,
       borderColor: colors.border,
-      borderStyle: 'dashed',
-      alignItems: 'center',
+      borderStyle: "dashed",
+      alignItems: "center",
       marginBottom: SPACING.xl,
     },
     devButtonText: {
       color: colors.textSecondary,
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: "600",
     },
 
     // Modal
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      justifyContent: 'center',
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
       padding: SPACING.lg,
     },
     modalContent: {
@@ -654,12 +679,12 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
       fontSize: 20,
       marginBottom: SPACING.xs,
-      textAlign: 'center',
+      textAlign: "center",
     },
     modalDesc: {
       ...TYPOGRAPHY.body,
       color: colors.textSecondary,
-      textAlign: 'center',
+      textAlign: "center",
       marginBottom: SPACING.lg,
       fontSize: 14,
     },
@@ -673,12 +698,12 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       marginBottom: SPACING.lg,
     },
-    modalActions: { flexDirection: 'row', gap: SPACING.md },
+    modalActions: { flexDirection: "row", gap: SPACING.md },
     modalBtn: {
       flex: 1,
       paddingVertical: 14,
       borderRadius: BORDER_RADIUS.round,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
-  })
+  });
