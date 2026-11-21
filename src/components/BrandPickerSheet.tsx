@@ -15,10 +15,10 @@ import {
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
-  BottomSheetScrollView,
+  BottomSheetFlatList, // 🚀 ИСПОЛЬЗУЕМ FLATLIST
 } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
-import { KNOWN_BRANDS, getBrandBackground } from "../utils/brandUtils";
+import { KNOWN_BRANDS, getBrandBackground, Brand } from "../utils/brandUtils";
 import { BrandIcon } from "./ui/BrandIcon";
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
 import { useTheme } from "../theme/ThemeContext";
@@ -58,7 +58,7 @@ export const BrandPickerSheet = React.forwardRef<
     });
   }, [search]);
 
-  // 🚀 Проверяем, есть ли точное совпадение (чтобы не предлагать "Создать", если бренд уже есть)
+  // 🚀 Проверяем, есть ли точное совпадение
   const hasExactMatch = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return true;
@@ -87,6 +87,29 @@ export const BrandPickerSheet = React.forwardRef<
     sheetRef.current?.dismiss();
   };
 
+  // 🚀 Рендер одной карточки бренда
+  const renderItem = useCallback(
+    ({ item }: { item: Brand }) => (
+      <TouchableOpacity
+        style={styles.brandCard}
+        onPress={() => handleSelect(item.name)}
+      >
+        <View
+          style={[
+            styles.iconWrapper,
+            { backgroundColor: getBrandBackground(item, isDark) },
+          ]}
+        >
+          <BrandIcon brand={item} size={28} />
+        </View>
+        <Text style={styles.brandName} numberOfLines={2}>
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+    ),
+    [isDark, styles],
+  );
+
   return (
     <BottomSheetModal
       ref={sheetRef}
@@ -114,7 +137,7 @@ export const BrandPickerSheet = React.forwardRef<
           />
         </View>
 
-        {/* 🚀 Кнопка "Создать" наверху под поиском, если нет точного совпадения */}
+        {/* 🚀 Кнопка "Создать" */}
         {search.trim().length > 0 && !hasExactMatch && (
           <TouchableOpacity
             style={styles.inlineCreateBtn}
@@ -125,43 +148,31 @@ export const BrandPickerSheet = React.forwardRef<
               size={20}
               color={colors.primary}
             />
-            <Text style={styles.inlineCreateBtnText}>Добавить "{search}"</Text>
+            <Text style={styles.inlineCreateBtnText} numberOfLines={1}>
+              Добавить "{search}"
+            </Text>
           </TouchableOpacity>
         )}
 
-        <BottomSheetScrollView
+        {/* 🚀 ВИРТУАЛИЗИРОВАННЫЙ СПИСОК */}
+        <BottomSheetFlatList
+          data={filteredBrands}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          numColumns={3}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 150 }}
-        >
-          <View style={styles.grid}>
-            {filteredBrands.map((brand) => (
-              <TouchableOpacity
-                key={brand.id}
-                style={styles.brandCard}
-                onPress={() => handleSelect(brand.name)}
-              >
-                <View
-                  style={[
-                    styles.iconWrapper,
-                    { backgroundColor: getBrandBackground(brand, isDark) },
-                  ]}
-                >
-                  <BrandIcon brand={brand} size={28} />
-                </View>
-                <Text style={styles.brandName} numberOfLines={1}>
-                  {brand.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {filteredBrands.length === 0 && search.trim() === "" && (
+          contentContainerStyle={{ paddingBottom: 150, paddingTop: SPACING.xs }}
+          columnWrapperStyle={{ justifyContent: "flex-start", gap: 10 }} // Распределяем по ширине
+          initialNumToRender={12} // Сначала грузим только 12 иконок
+          maxToRenderPerBatch={12} // Потом догружаем по 12
+          windowSize={5} // Держим в памяти только 5 экранов
+          ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Начните вводить название</Text>
+              <Text style={styles.emptyText}>Ничего не найдено</Text>
             </View>
           )}
-        </BottomSheetScrollView>
+        />
       </View>
     </BottomSheetModal>
   );
@@ -173,8 +184,8 @@ const createStyles = (colors: ThemeColors) =>
     title: {
       ...TYPOGRAPHY.title,
       color: colors.textMain,
-      fontSize: 20, // 🚀 Чуть уменьшили заголовок для экономии места
-      marginBottom: SPACING.sm, // 🚀 Уменьшили отступ до поиска
+      fontSize: 20,
+      marginBottom: SPACING.sm,
     },
     searchContainer: {
       flexDirection: "row",
@@ -182,7 +193,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.md,
       paddingHorizontal: SPACING.md,
-      marginBottom: SPACING.sm, // 🚀 Уменьшили отступ
+      marginBottom: SPACING.sm,
       height: 48,
       borderWidth: 1,
       borderColor: colors.border,
@@ -206,22 +217,19 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.body,
       color: colors.primary,
       fontWeight: "600",
+      flex: 1,
     },
-    grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 10, // 🚀 ГЛАВНОЕ: уменьшили gap с SPACING.md (16) до 10px
-      paddingBottom: SPACING.xl,
-    },
+    // 🚀 Стили карточки (flex: 1 позволяет ровно распределить 3 колонки)
     brandCard: {
-      width: "31%", // 🚀 31% * 3 = 93% + 20px (два gap по 10px) = идеально влезает в любой экран
+      flex: 1,
+      maxWidth: "33.33%", // Защита от растягивания
       alignItems: "center",
       marginBottom: SPACING.md,
     },
     iconWrapper: {
-      width: 52, // 🚀 Уменьшили с 60 до 52 (идеальный размер для 3 колонок)
+      width: 52,
       height: 52,
-      borderRadius: 14, // 🚀 Скругление под новый размер
+      borderRadius: 14,
       justifyContent: "center",
       alignItems: "center",
       marginBottom: 6,
@@ -230,13 +238,12 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.caption,
       color: colors.textMain,
       textAlign: "center",
-      fontSize: 11, // 🚀 Чуть компактнее
-      lineHeight: 14, // 🚀 Чтобы длинные названия (в 2 строки) не разъезжались
+      fontSize: 11,
+      lineHeight: 14,
     },
     emptyState: { alignItems: "center", marginTop: SPACING.xl },
     emptyText: {
       ...TYPOGRAPHY.body,
       color: colors.textSecondary,
-      marginBottom: SPACING.md,
     },
   });
