@@ -10,8 +10,6 @@ import {
   TextInput,
   ActivityIndicator,
   AppState,
-  Platform,
-  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
@@ -47,6 +45,9 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
       "change",
       async (nextAppState) => {
         if (nextAppState === "active" && !isPremium) {
+          console.log(
+            "🔄 [APP] Приложение вернулось в активное состояние, проверяем премиум...",
+          );
           await checkPremiumStatus();
         }
       },
@@ -63,6 +64,12 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
     setIsLoading(true);
     try {
       const deviceId = getDeviceId();
+      console.log(
+        "🟢 [APP 1] Начало запроса оплаты. Email:",
+        email,
+        "DeviceID:",
+        deviceId,
+      );
 
       const response = await fetch(`${API_URL}/api/create-payment`, {
         method: "POST",
@@ -70,46 +77,101 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
         body: JSON.stringify({
           device_id: deviceId,
           email: email,
-          is_test: true, // 🚀 ВКЛЮЧЕНО ДЛЯ ТЕСТА
         }),
       });
 
-      const data = await response.json();
+      console.log(
+        "🟢 [APP 2] Статус ответа сервера:",
+        response.status,
+        response.statusText,
+      );
+      console.log(
+        "🟢 [APP 2b] Заголовки ответа:",
+        response.headers.get("content-type"),
+      );
+
+      // 🚀 ГЛАВНЫЙ ТРЮК: читаем сырой текст ДО парсинга JSON, чтобы поймать HTML-ошибки хостинга
+      const rawText = await response.text();
+      console.log(
+        "🟡 [APP 3] Сырой ответ от сервера (первые 200 символов):",
+        rawText.substring(0, 200),
+      );
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+        console.log("🟢 [APP 4] Успешно распарсен JSON:", data);
+      } catch (parseError) {
+        console.error(
+          "🔴 [APP 4.5] ОШИБКА ПАРСИНГА JSON! Сервер вернул не JSON:",
+          parseError,
+        );
+        throw new Error(
+          "Сервер вернул некорректный формат данных (не JSON). Возможно, сервер временно недоступен.",
+        );
+      }
+
+      if (!response.ok) {
+        console.error(
+          "🔴 [APP 5] Сервер вернул ошибку HTTP:",
+          response.status,
+          data,
+        );
+        throw new Error(
+          data.error || data.details || `Ошибка сервера: ${response.status}`,
+        );
+      }
 
       if (data.url) {
+        console.log("🟢 [APP 6] Ссылка получена! Открываем браузер...");
         setShowEmailModal(false);
+
+        // Открываем браузер
         await WebBrowser.openBrowserAsync(data.url);
-        await checkPremiumStatus();
+
+        console.log(
+          "🟢 [APP 7] Браузер закрыт. Ждем вебхук от Робокассы и проверяем статус...",
+        );
+
+        // 🚀 Даем Робокассе 3 секунды на отправку вебхука на наш сервер
+        await new Promise<void>((resolve) => setTimeout(resolve, 3000));
+
+        const isNowPremium = await checkPremiumStatus();
+
+        if (isNowPremium) {
+          Alert.alert(
+            "🎉 Успех!",
+            "Премиум активирован. Спасибо за поддержку!",
+          );
+        } else {
+          Alert.alert(
+            "⏳ Оплата обрабатывается",
+            "Если вы успешно оплатили, статус обновится в течение 1-2 минут. Если нет, просто перезапустите приложение.",
+          );
+        }
       } else {
-        Alert.alert("Ошибка", "Сервер не вернул ссылку на оплату");
+        console.error("🔴 [APP 8] В ответе сервера нет поля 'url'!", data);
+        Alert.alert(
+          "Ошибка",
+          data.error ||
+            "Сервер не вернул ссылку на оплату. Проверьте логи консоли.",
+        );
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error(
+        "🔴 🔴 🔴 [APP ❌] КРИТИЧЕСКАЯ ОШИБКА В ПРОЦЕССЕ ОПЛАТЫ 🔴 🔴 🔴",
+      );
+      console.error("Сообщение:", error.message);
+      console.error("Имя ошибки:", error.name);
+      console.error("Стек вызовов:", error.stack);
+
       Alert.alert(
-        "Ошибка",
-        "Не удалось связаться с сервером. Проверьте интернет.",
+        "Ошибка оплаты",
+        error.message || "Не удалось связаться с сервером. Проверьте интернет.",
       );
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleResetPremium = () => {
-    Alert.alert(
-      "Сброс Премиума",
-      "Вы уверены, что хотите отключить Премиум? Это нужно только для тестирования.",
-      [
-        { text: "Отмена", style: "cancel" },
-        {
-          text: "Сбросить",
-          style: "destructive",
-          onPress: () => {
-            setPremium(false);
-            Alert.alert("Готово", "Статус Премиума сброшен.");
-          },
-        },
-      ],
-    );
   };
 
   return (
@@ -159,7 +221,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
             </View>
           </View>
 
-          {/* 🚀 Заменили "Премиум-статус" на "Календарь списаний" */}
           <View style={styles.featureItem}>
             <View
               style={[styles.featureIcon, { backgroundColor: `#10B98115` }]}
@@ -243,16 +304,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
             </View>
           </View>
         </View>
-
-        {isPremium && (
-          <TouchableOpacity
-            style={styles.resetBtn}
-            onPress={handleResetPremium}
-          >
-            <Ionicons name="refresh" size={20} color={colors.danger} />
-            <Text style={styles.resetBtnText}>Сбросить статус (для теста)</Text>
-          </TouchableOpacity>
-        )}
       </ScrollView>
 
       <View style={styles.bottomActions}>
@@ -341,7 +392,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     placeholder: { width: 44 },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
-
     heroCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.xl,
@@ -390,7 +440,6 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.primary,
       marginTop: 4,
     },
-
     sectionTitle: {
       ...TYPOGRAPHY.subtitle,
       color: colors.textSecondary,
@@ -428,7 +477,6 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       lineHeight: 18,
     },
-
     soonBadge: {
       backgroundColor: colors.border,
       paddingHorizontal: 6,
@@ -441,25 +489,6 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       textTransform: "uppercase",
     },
-
-    resetBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8,
-      marginTop: SPACING.xl,
-      paddingVertical: SPACING.md,
-      borderWidth: 1,
-      borderColor: `${colors.danger}30`,
-      borderRadius: BORDER_RADIUS.md,
-      backgroundColor: `${colors.danger}05`,
-    },
-    resetBtnText: {
-      ...TYPOGRAPHY.body,
-      color: colors.danger,
-      fontWeight: "600",
-    },
-
     bottomActions: {
       paddingHorizontal: SPACING.lg,
       paddingTop: SPACING.sm,
@@ -480,7 +509,6 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       textAlign: "center",
     },
-
     modalOverlay: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.5)",

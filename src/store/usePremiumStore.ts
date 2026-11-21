@@ -4,7 +4,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Application from "expo-application";
 import { Platform } from "react-native";
 
-// 🚀 Ссылка на твой сервер
 const API_URL = "https://sub-stop-server-nikolyovin.msk1.amvera.tech";
 
 interface PremiumState {
@@ -20,7 +19,6 @@ export const usePremiumStore = create<PremiumState>()(
       isPremium: false,
       setPremium: (status) => set({ isPremium: status }),
 
-      // Получаем уникальный ID устройства Android
       getDeviceId: () => {
         if (Platform.OS === "android") {
           return Application.getAndroidId() || "unknown_android";
@@ -28,14 +26,28 @@ export const usePremiumStore = create<PremiumState>()(
         return "unknown_device";
       },
 
-      // Запрос к серверу для проверки статуса
       checkPremiumStatus: async () => {
         try {
           const deviceId = get().getDeviceId();
+          console.log(
+            "🔍 [PREMIUM CHECK] Запрашиваем статус для deviceId:",
+            deviceId,
+          );
+
           const response = await fetch(
             `${API_URL}/api/check-premium?device_id=${deviceId}`,
           );
+
+          if (!response.ok) {
+            console.warn(`⚠️ Сервер вернул ошибку ${response.status}`);
+            return get().isPremium;
+          }
+
           const data = await response.json();
+          console.log(
+            "🔍 [PREMIUM CHECK] Ответ сервера:",
+            JSON.stringify(data),
+          ); // 🚀 ВОТ ЭТОТ ЛОГ
 
           if (data.isPremium) {
             set({ isPremium: true });
@@ -43,8 +55,8 @@ export const usePremiumStore = create<PremiumState>()(
           }
           return false;
         } catch (error) {
-          console.error("Ошибка проверки премиума:", error);
-          return get().isPremium; // Если сервер недоступен, оставляем локальный статус
+          console.error("Ошибка сети при проверке премиума:", error);
+          return get().isPremium;
         }
       },
     }),

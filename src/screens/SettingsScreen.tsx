@@ -19,7 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../theme/ThemeContext";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useSecurityStore } from "../store/useSecurityStore";
-import { useBiometricLock } from "../hooks/useBiometricLock"; // 🚀 ИСПРАВЛЕНО: правильный импорт
+import { useBiometricLock } from "../hooks/useBiometricLock";
 import { usePremiumStore } from "../store/usePremiumStore";
 import { useSubscriptionStore } from "../store/useSubscriptionStore";
 import { fetchAndSaveRates } from "../services/currencyService";
@@ -162,10 +162,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     reset: resetSettings,
   } = useSettingsStore();
 
-  // 🚀 ИСПРАВЛЕНО: берем состояние блокировки из стора
   const { isLockEnabled, reset: resetSecurity } = useSecurityStore();
 
-  // 🚀 ИСПРАВЛЕНО: берем логику биометрии из правильного хука!
   const { isBiometricAvailable, toggleLock, isCheckingHardware } =
     useBiometricLock();
 
@@ -193,7 +191,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       Alert.alert("Ошибка", "Не удалось обновить курсы. Проверьте интернет.");
   };
 
-  // 🚀 ИСПРАВЛЕНО: multiRemove вместо clear, чтобы сохранить флаг онбординга
   const handleResetApp = async () => {
     Alert.alert(
       "Сбросить приложение?",
@@ -334,7 +331,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             styles={styles}
             colors={colors}
           />
-          {/* 🚀 ТЕПЕРЬ ЭТО УСЛОВИЕ СРАБОТАЕТ, так как useBiometricLock возвращает реальные значения */}
           {(isBiometricAvailable || isCheckingHardware) && (
             <SettingsItem
               icon="finger-print-outline"
@@ -490,16 +486,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         <Text style={styles.versionText}>
           Версия {Constants.expoConfig?.version || "1.0.0"}
         </Text>
-
-        <TouchableOpacity
-          style={styles.devButton}
-          onPress={() => {
-            setPremium(!isPremium);
-            Alert.alert("Dev Mode", `Премиум ${!isPremium ? "ВКЛ" : "ВЫКЛ"}`);
-          }}
-        >
-          <Text style={styles.devButtonText}>[DEV] Переключить Премиум</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       <Modal visible={showRestoreModal} transparent animationType="fade">
@@ -662,20 +648,6 @@ const createStyles = (colors: ThemeColors) =>
       textAlign: "center",
       marginTop: SPACING.md,
       marginBottom: SPACING.xl,
-    },
-    devButton: {
-      padding: SPACING.md,
-      borderRadius: BORDER_RADIUS.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderStyle: "dashed",
-      alignItems: "center",
-      marginBottom: SPACING.xl,
-    },
-    devButtonText: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: "600",
     },
     modalOverlay: {
       flex: 1,
