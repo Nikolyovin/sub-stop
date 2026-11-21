@@ -21,6 +21,7 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { useSecurityStore } from "../store/useSecurityStore";
 import { useBiometricLock } from "../hooks/useBiometricLock";
 import { usePremiumStore } from "../store/usePremiumStore";
+import { useSubscriptionStore } from "../store/useSubscriptionStore"; // 🚀 ДОБАВЛЕНО
 import { fetchAndSaveRates } from "../services/currencyService";
 import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from "../theme";
 
@@ -31,7 +32,7 @@ interface SettingsScreenProps {
   onOpenPremium: () => void;
 }
 
-// 🚀 Вспомогательный компонент для группировки настроек в одну карточку
+// ... (компоненты SettingsGroup и SettingsItem остаются без изменений, как в твоем файле) ...
 const SettingsGroup = ({
   title,
   children,
@@ -47,7 +48,6 @@ const SettingsGroup = ({
   </View>
 );
 
-// 🚀 Вспомогательный компонент для строки внутри группы
 const SettingsItem = ({
   icon,
   title,
@@ -96,7 +96,6 @@ const SettingsItem = ({
           color={isDestructive ? colors.danger : colors.primary}
         />
       </View>
-
       <View style={styles.textContainer}>
         <Text
           style={[styles.itemTitle, isDestructive && { color: colors.danger }]}
@@ -105,7 +104,6 @@ const SettingsItem = ({
         </Text>
         {subtitle && <Text style={styles.itemSubtitle}>{subtitle}</Text>}
       </View>
-
       {isLoading ? (
         <ActivityIndicator
           size="small"
@@ -162,12 +160,17 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setReminderTime,
     usdRate,
     eurRate,
-  } = useSettingsStore();
-
+    reset: resetSettings,
+  } = useSettingsStore(); // 🚀 ДОБАВЛЕНО reset
   const { isLockEnabled } = useSecurityStore();
-  const { isBiometricAvailable, toggleLock, isCheckingHardware } =
-    useBiometricLock();
+  const {
+    isBiometricAvailable,
+    toggleLock,
+    isCheckingHardware,
+    reset: resetSecurity,
+  } = useSecurityStore() as any; // 🚀 ДОБАВЛЕНО reset
   const { isPremium, setPremium, getDeviceId } = usePremiumStore();
+  const { reset: resetSubscriptions } = useSubscriptionStore(); // 🚀 ДОБАВЛЕНО reset
 
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isAnyNotificationEnabled = notifyTrials || notifyRegular;
@@ -190,7 +193,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       Alert.alert("Ошибка", "Не удалось обновить курсы. Проверьте интернет.");
   };
 
-  // 🚀 НОВАЯ ЛОГИКА: Сброс только локальных данных (Премиум сохраняется)
+  // 🚀 ОБНОВЛЕННАЯ ЛОГИКА: Мгновенный сброс без перезапуска
   const handleResetApp = async () => {
     Alert.alert(
       "Сбросить приложение?",
@@ -202,9 +205,19 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           style: "destructive",
           onPress: async () => {
             try {
-              const currentPremiumStatus = isPremium; // Запоминаем статус
-              await AsyncStorage.clear(); // Очищаем всё
-              setPremium(currentPremiumStatus); // Восстанавливаем флаг премиума
+              const currentPremiumStatus = isPremium;
+
+              // 1. МГНОВЕННО очищаем оперативную память (UI обновится сразу)
+              resetSubscriptions();
+              resetSettings();
+              resetSecurity();
+
+              // 2. Очищаем физическое хранилище (включая флаг онбординга)
+              await AsyncStorage.clear();
+
+              // 3. Восстанавливаем Премиум (так как AsyncStorage.clear() затер и его)
+              setPremium(currentPremiumStatus);
+
               Alert.alert(
                 "Готово",
                 "Приложение сброшено. Премиум-статус сохранен.",
@@ -219,7 +232,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     );
   };
 
-  // 🚀 НОВАЯ ЛОГИКА: Полное удаление с сервера (Премиум теряется)
+  // 🚀 ОБНОВЛЕННАЯ ЛОГИКА: Полное удаление с сервера + мгновенный сброс UI
   const handleDeleteAllData = () => {
     Alert.alert(
       "⚠️ Удалить аккаунт и данные?",
@@ -236,8 +249,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ device_id: getDeviceId() }),
               });
+
+              // 1. МГНОВЕННО очищаем оперативную память
+              resetSubscriptions();
+              resetSettings();
+              resetSecurity();
+
+              // 2. Очищаем физическое хранилище
               await AsyncStorage.clear();
+
+              // 3. Сбрасываем премиум (он теряется при полном удалении)
               setPremium(false);
+
               Alert.alert(
                 "Готово",
                 "Все данные удалены. Приложение будет закрыто.",
@@ -464,7 +487,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           Версия {Constants.expoConfig?.version || "1.0.0"}
         </Text>
 
-        {/* 🚀 ВРЕМЕННАЯ КНОПКА ДЛЯ ТЕСТА (Удалить перед релизом!) */}
         <TouchableOpacity
           style={styles.devButton}
           onPress={() => {
@@ -476,7 +498,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Модалка восстановления покупки */}
       <Modal visible={showRestoreModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -526,14 +547,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: SPACING.lg,
       height: 56,
-      marginTop: Platform.OS === "ios" ? 50 : 10,
       marginBottom: SPACING.sm,
     },
     backButton: {
@@ -544,8 +564,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     headerTitle: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 20 },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
-
-    // 🚀 Стили для группировки (iOS-style)
     groupContainer: { marginBottom: SPACING.lg },
     groupTitle: {
       ...TYPOGRAPHY.caption,
@@ -579,7 +597,6 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.border,
       marginHorizontal: SPACING.md,
     },
-
     iconBox: {
       width: 32,
       height: 32,
@@ -608,7 +625,6 @@ const createStyles = (colors: ThemeColors) =>
       marginRight: 8,
     },
     rightElement: { marginLeft: "auto" },
-
     activeBadge: {
       backgroundColor: `${colors.accent}20`,
       color: colors.accent,
@@ -618,8 +634,6 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: 4,
       borderRadius: 12,
     },
-
-    // Toggle switch
     toggle: {
       width: 44,
       height: 24,
@@ -638,7 +652,6 @@ const createStyles = (colors: ThemeColors) =>
       shadowRadius: 2,
       elevation: 2,
     },
-
     versionText: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
@@ -646,7 +659,6 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: SPACING.md,
       marginBottom: SPACING.xl,
     },
-
     devButton: {
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.md,
@@ -661,8 +673,6 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 12,
       fontWeight: "600",
     },
-
-    // Modal
     modalOverlay: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.5)",

@@ -7,8 +7,6 @@ interface SettingsState {
   notifyRegular: boolean;
   reminderHour: number;
   reminderMinute: number;
-
-  // 🚀 Курсы валют
   usdRate: number;
   eurRate: number;
   lastRateUpdate: number;
@@ -17,6 +15,7 @@ interface SettingsState {
   toggleNotifyRegular: () => void;
   setReminderTime: (hour: number, minute: number) => void;
   setRates: (usd: number, eur: number) => void;
+  reset: () => void; // 🚀 ДОБАВЛЕНО
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -26,8 +25,7 @@ export const useSettingsStore = create<SettingsState>()(
       notifyRegular: true,
       reminderHour: 10,
       reminderMinute: 0,
-
-      usdRate: 90, // Значения по умолчанию, пока не загрузились настоящие
+      usdRate: 90,
       eurRate: 100,
       lastRateUpdate: 0,
 
@@ -39,6 +37,18 @@ export const useSettingsStore = create<SettingsState>()(
         set({ reminderHour: hour, reminderMinute: minute }),
       setRates: (usd, eur) =>
         set({ usdRate: usd, eurRate: eur, lastRateUpdate: Date.now() }),
+
+      // 🚀 МГНОВЕННЫЙ СБРОС НАСТРОЕК
+      reset: () =>
+        set({
+          notifyTrials: true,
+          notifyRegular: true,
+          reminderHour: 10,
+          reminderMinute: 0,
+          usdRate: 90,
+          eurRate: 100,
+          lastRateUpdate: 0,
+        }),
     }),
     {
       name: "sub-stop-settings",

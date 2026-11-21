@@ -15,7 +15,7 @@ import { useSubscriptionStore } from "../store/useSubscriptionStore";
 import { usePremiumStore } from "../store/usePremiumStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { HeaderBackButton } from "../components/ui/HeaderBackButton";
-import { formatPrice, formatCurrency } from "../utils/formatUtils"; // 🚀 Добавили formatCurrency
+import { formatPrice, formatCurrency } from "../utils/formatUtils";
 import { getBrandData, getBrandBackground } from "../utils/brandUtils";
 import { BrandIcon } from "../components/ui/BrandIcon";
 import {
@@ -70,7 +70,7 @@ LocaleConfig.locales["ru"] = {
 };
 LocaleConfig.defaultLocale = "ru";
 
-// 🚀 ИСПРАВЛЕНО: Проверяем именно status === 'trial'
+// 🚀 Берем реальную цену (regularPrice для триалов)
 const getActualPrice = (sub: any) => {
   if (sub.status === "trial" && sub.regularPrice) {
     return sub.regularPrice;
@@ -81,13 +81,13 @@ const getActualPrice = (sub: any) => {
 interface CalendarScreenProps {
   onBack: () => void;
   onOpenPremium: () => void;
-  onOpenDetails: (id: string) => void; // 🚀 ДОБАВЛЕНО: для открытия деталей
+  onOpenDetails: (id: string) => void;
 }
 
 export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   onBack,
   onOpenPremium,
-  onOpenDetails, // 🚀 ДОБАВЛЕНО
+  onOpenDetails,
 }) => {
   const { colors, theme } = useTheme();
   const isDark = theme === "dark";
@@ -130,12 +130,12 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       let rubPrice = price;
       if (sub.currency === "USD") rubPrice = price * usdRate;
       if (sub.currency === "EUR") rubPrice = price * eurRate;
-      return sum + rubPrice; // ❌ было: (sub.billingCycle === 'yearly' ? rubPrice / 12 : rubPrice)
+      return sum + rubPrice; // Реальное списание, без деления на 12
     }, 0);
   }, [daySubscriptions, usdRate, eurRate]);
 
   const formattedSelectedDate = useMemo(() => {
-    return format(new Date(selectedDate), "d MMMM", { locale: ru });
+    return format(new Date(selectedDate), "d MMMM yyyy", { locale: ru });
   }, [selectedDate]);
 
   return (
@@ -176,11 +176,10 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           <Calendar
             current={selectedDate}
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
-            // 🚀 ИСПРАВЛЕНО: При смене месяца сбрасываем выбор на сегодня,
-            // чтобы список внизу не показывал "призраков" прошлого месяца
-            onMonthChange={() =>
-              setSelectedDate(format(new Date(), "yyyy-MM-dd"))
-            }
+            // 🚀 ИСПРАВЛЕНО: При листании месяца устанавливаем 1-е число этого месяца.
+            // Библиотека передает объект month с dateString (например, "2023-12-01").
+            // Это убирает "призраков" прошлых месяцев из списка внизу.
+            onMonthChange={(month) => setSelectedDate(month.dateString)}
             markedDates={markedDates}
             firstDay={1}
             theme={{
@@ -229,10 +228,9 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           ) : (
             daySubscriptions.map((sub) => {
               const brand = getBrandData(sub.name);
-              const actualPrice = getActualPrice(sub); // 🚀 Берем правильную цену
+              const actualPrice = getActualPrice(sub);
 
               return (
-                // 🚀 ИСПРАВЛЕНО: Обернули в TouchableOpacity для открытия деталей
                 <TouchableOpacity
                   key={sub.id}
                   style={styles.subCard}
@@ -257,7 +255,6 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                         : "Ежегодно"}
                     </Text>
                   </View>
-                  {/* 🚀 ИСПРАВЛЕНО: Используем formatCurrency и actualPrice */}
                   <Text style={styles.subPrice}>
                     {formatCurrency(actualPrice, sub.currency)}
                   </Text>
