@@ -241,9 +241,8 @@ export const SubscriptionDetailsScreen: React.FC<
           subscription.regularPrice &&
           subscription.regularPrice !== subscription.price ? (
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>
-                После триала {isYearly ? "(в год)" : ""}
-              </Text>
+              <Text style={styles.statLabel}>После триала</Text>
+              {isYearly && <Text style={styles.statLabelSub}>(в год)</Text>}
               <Text
                 style={[styles.statValue, { color: colors.danger }]}
                 numberOfLines={1}
@@ -564,4 +563,10 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
     },
     actionBtnText: { ...TYPOGRAPHY.button, fontSize: 16 },
+    statLabelSub: {
+      ...TYPOGRAPHY.caption,
+      color: colors.textSecondary,
+      fontSize: 11,
+      marginTop: 2,
+    },
   });

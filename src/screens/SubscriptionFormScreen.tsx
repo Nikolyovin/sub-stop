@@ -35,6 +35,7 @@ interface SubscriptionFormScreenProps {
   onBack: () => void;
   initialData?: Subscription;
   focusField?: "note";
+  onShowAd?: () => void; // 🚀 1. ДОБАВЛЕНО: проп для вызова рекламы
 }
 
 const getCurrencySymbol = (curr: string) => {
@@ -47,6 +48,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
   onBack,
   initialData,
   focusField,
+  onShowAd, // 🚀 2. ДОБАВЛЕНО: деструктуризация пропа
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -157,6 +159,14 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
       ))}
     </View>
   );
+
+  // 🚀 3. ДОБАВЛЕНО: Обертка для сохранения. Вызываем рекламу только при ДОБАВЛЕНИИ (не редактировании)
+  const handleSave = () => {
+    form.save();
+    if (!form.isEditing && onShowAd) {
+      onShowAd();
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -273,7 +283,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
               onChangeText={(text) =>
                 handlePriceChange(text, form.setRegularPrice)
               }
-              placeholder="0" // 🚀 Было: 'Например, 599'
+              placeholder="0"
               keyboardType="decimal-pad"
               rightElement={<CurrencyToggle />}
               error={
@@ -344,7 +354,7 @@ export const SubscriptionFormScreen: React.FC<SubscriptionFormScreenProps> = ({
         >
           <TouchableOpacity
             style={[styles.saveBtn, !form.isValid && styles.saveBtnDisabled]}
-            onPress={form.save}
+            onPress={handleSave} // 🚀 4. ИЗМЕНЕНО: вызываем нашу обертку вместо form.save
             disabled={!form.isValid}
           >
             <Text style={styles.saveBtnText}>
@@ -372,14 +382,14 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
       paddingHorizontal: SPACING.lg,
       height: 56,
-      marginBottom: 4, // 🚀 Было: SPACING.sm (8px). Экономим 4px
+      marginBottom: 4,
     },
     headerTitle: {
       flex: 1,
       textAlign: "center",
       ...TYPOGRAPHY.title,
       color: colors.textMain,
-      fontSize: 20, // 🚀 Было: 22. Чуть компактнее, экономит 2-4px по высоте строки
+      fontSize: 20,
     },
     placeholder: { width: 44 },
 
@@ -388,8 +398,7 @@ const createStyles = (colors: ThemeColors) =>
     label: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      marginBottom: 4, // 🚀 Было: 6. Экономим 2px на каждом поле
-      // 🚀 Убрали marginTop: SPACING.sm. Экономим ~8px на каждом поле!
+      marginBottom: 4,
     },
     inputGroup: { marginBottom: 0 },
 
@@ -402,11 +411,11 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: SPACING.md,
       borderWidth: 1,
       borderColor: colors.border,
-      height: 44, // 🚀 Было: 48. Экономим 4px
+      height: 44,
     },
-    selectorTextPlaceholder: { fontSize: 15, color: colors.textSecondary }, // 🚀 Чуть меньше шрифт
+    selectorTextPlaceholder: { fontSize: 15, color: colors.textSecondary },
     selectorTextActive: {
-      fontSize: 15, // 🚀 Чуть меньше шрифт
+      fontSize: 15,
       color: colors.textMain,
       fontWeight: "500",
     },
@@ -418,7 +427,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: 4,
       borderWidth: 1,
       borderColor: colors.border,
-      marginBottom: 4, // 🚀 Было: SPACING.sm. Экономим 4px
+      marginBottom: 4,
     },
     segmentBtn: {
       flex: 1,
@@ -447,7 +456,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: BORDER_RADIUS.sm - 2,
     },
     currBtnActive: { backgroundColor: colors.primary },
-    currText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary }, // 🚀 13 вместо 14
+    currText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary },
     currTextActive: { color: "#FFF" },
 
     dateInput: {
@@ -456,32 +465,31 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: SPACING.md,
       borderWidth: 1,
       borderColor: colors.border,
-      marginBottom: 4, // 🚀 Было: SPACING.sm. Экономим 4px
-      height: 44, // 🚀 Было: 48
+      marginBottom: 4,
+      height: 44,
       justifyContent: "center",
     },
-    dateText: { fontSize: 15, color: colors.textMain }, // 🚀 15 вместо 16
+    dateText: { fontSize: 15, color: colors.textMain },
     noteInput: {
-      height: 44, // 🚀 Было: 48
+      height: 44,
       textAlignVertical: "center",
       fontSize: 15,
       color: colors.textMain,
     },
 
-    // 🚀 ПОЛНАЯ ОПТИМИЗАЦИЯ ФУТЕРА
     bottomButtonContainer: {
       paddingHorizontal: SPACING.lg,
-      paddingBottom: Platform.OS === "android" ? 16 : SPACING.md, // Минимальный безопасный отступ снизу
+      paddingBottom: Platform.OS === "android" ? 16 : SPACING.md,
       backgroundColor: colors.background,
     },
 
     saveBtn: {
       backgroundColor: colors.primary,
-      paddingVertical: 12, // 🚀 Было: SPACING.md (16). Делаем кнопку чуть ниже по высоте
+      paddingVertical: 12,
       borderRadius: BORDER_RADIUS.round,
       alignItems: "center",
-      marginTop: 8, // Небольшой отступ от границы ScrollView
+      marginTop: 8,
     },
     saveBtnDisabled: { opacity: 0.5 },
-    saveBtnText: { ...TYPOGRAPHY.button, color: colors.white, fontSize: 16 }, // 🚀 16 вместо 18
+    saveBtnText: { ...TYPOGRAPHY.button, color: colors.white, fontSize: 16 },
   });

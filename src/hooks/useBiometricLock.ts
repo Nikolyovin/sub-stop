@@ -6,7 +6,6 @@ import { useSecurityStore } from "../store/useSecurityStore";
 const GRACE_PERIOD_MS = 30000;
 
 export const useBiometricLock = () => {
-  // 🚀 Берем состояние из глобального стора
   const { isLockEnabled, isUnlocked, setLockEnabled, setUnlocked } =
     useSecurityStore();
 
@@ -26,6 +25,9 @@ export const useBiometricLock = () => {
     checkAvailability();
   }, []);
 
+  // 🚀 УДАЛЕНО: проблемный useEffect с [], который блокировал приложение при открытии Настроек
+
+  // 🚀 ОСТАВЛЯЕМ: проверка только при сворачивании/разворачивании приложения
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
@@ -34,10 +36,10 @@ export const useBiometricLock = () => {
           if (nextState === "background" || nextState === "inactive") {
             backgroundTimestamp.current = Date.now();
           } else if (nextState === "active") {
-            if (backgroundTimestamp.current) {
+            if (backgroundTimestamp.current !== null) {
               const timeAway = Date.now() - backgroundTimestamp.current;
               if (timeAway > GRACE_PERIOD_MS) {
-                setUnlocked(false); // Блокируем глобально
+                setUnlocked(false); // Блокировка при долгом пребывании в фоне (> 30 сек)
               }
               backgroundTimestamp.current = null;
             }
@@ -60,7 +62,7 @@ export const useBiometricLock = () => {
         fallbackLabel: "Использовать пароль",
       });
       if (result.success) {
-        setUnlocked(true); // Разблокируем глобально
+        setUnlocked(true);
         return true;
       }
       return false;
@@ -79,7 +81,7 @@ export const useBiometricLock = () => {
         });
         if (!success.success) return;
       }
-      setLockEnabled(enabled); // Обновляем глобально
+      setLockEnabled(enabled);
     },
     [setLockEnabled],
   );

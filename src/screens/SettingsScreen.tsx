@@ -19,9 +19,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../theme/ThemeContext";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useSecurityStore } from "../store/useSecurityStore";
-import { useBiometricLock } from "../hooks/useBiometricLock";
+import { useBiometricLock } from "../hooks/useBiometricLock"; // 🚀 ИСПРАВЛЕНО: правильный импорт
 import { usePremiumStore } from "../store/usePremiumStore";
-import { useSubscriptionStore } from "../store/useSubscriptionStore"; // 🚀 ДОБАВЛЕНО
+import { useSubscriptionStore } from "../store/useSubscriptionStore";
 import { fetchAndSaveRates } from "../services/currencyService";
 import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from "../theme";
 
@@ -32,7 +32,6 @@ interface SettingsScreenProps {
   onOpenPremium: () => void;
 }
 
-// ... (компоненты SettingsGroup и SettingsItem остаются без изменений, как в твоем файле) ...
 const SettingsGroup = ({
   title,
   children,
@@ -161,16 +160,17 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     usdRate,
     eurRate,
     reset: resetSettings,
-  } = useSettingsStore(); // 🚀 ДОБАВЛЕНО reset
-  const { isLockEnabled } = useSecurityStore();
-  const {
-    isBiometricAvailable,
-    toggleLock,
-    isCheckingHardware,
-    reset: resetSecurity,
-  } = useSecurityStore() as any; // 🚀 ДОБАВЛЕНО reset
+  } = useSettingsStore();
+
+  // 🚀 ИСПРАВЛЕНО: берем состояние блокировки из стора
+  const { isLockEnabled, reset: resetSecurity } = useSecurityStore();
+
+  // 🚀 ИСПРАВЛЕНО: берем логику биометрии из правильного хука!
+  const { isBiometricAvailable, toggleLock, isCheckingHardware } =
+    useBiometricLock();
+
   const { isPremium, setPremium, getDeviceId } = usePremiumStore();
-  const { reset: resetSubscriptions } = useSubscriptionStore(); // 🚀 ДОБАВЛЕНО reset
+  const { reset: resetSubscriptions } = useSubscriptionStore();
 
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isAnyNotificationEnabled = notifyTrials || notifyRegular;
@@ -193,7 +193,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       Alert.alert("Ошибка", "Не удалось обновить курсы. Проверьте интернет.");
   };
 
-  // 🚀 ОБНОВЛЕННАЯ ЛОГИКА: Мгновенный сброс без перезапуска
+  // 🚀 ИСПРАВЛЕНО: multiRemove вместо clear, чтобы сохранить флаг онбординга
   const handleResetApp = async () => {
     Alert.alert(
       "Сбросить приложение?",
@@ -207,15 +207,19 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             try {
               const currentPremiumStatus = isPremium;
 
-              // 1. МГНОВЕННО очищаем оперативную память (UI обновится сразу)
+              // 1. МГНОВЕННО очищаем оперативную память
               resetSubscriptions();
               resetSettings();
               resetSecurity();
 
-              // 2. Очищаем физическое хранилище (включая флаг онбординга)
-              await AsyncStorage.clear();
+              // 2. Стираем ТОЛЬКО данные приложения, НЕ трогая флаг онбординга (@sub_stop_onboarding_seen)
+              await AsyncStorage.multiRemove([
+                "sub-stop-storage",
+                "sub-stop-settings",
+                "@sub_stop_security",
+              ]);
 
-              // 3. Восстанавливаем Премиум (так как AsyncStorage.clear() затер и его)
+              // 3. Восстанавливаем Премиум
               setPremium(currentPremiumStatus);
 
               Alert.alert(
@@ -232,7 +236,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     );
   };
 
-  // 🚀 ОБНОВЛЕННАЯ ЛОГИКА: Полное удаление с сервера + мгновенный сброс UI
   const handleDeleteAllData = () => {
     Alert.alert(
       "⚠️ Удалить аккаунт и данные?",
@@ -255,10 +258,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               resetSettings();
               resetSecurity();
 
-              // 2. Очищаем физическое хранилище
+              // 2. Полная очистка (включая онбординг, так как это полное удаление аккаунта)
               await AsyncStorage.clear();
 
-              // 3. Сбрасываем премиум (он теряется при полном удалении)
+              // 3. Сбрасываем премиум
               setPremium(false);
 
               Alert.alert(
@@ -331,6 +334,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             styles={styles}
             colors={colors}
           />
+          {/* 🚀 ТЕПЕРЬ ЭТО УСЛОВИЕ СРАБОТАЕТ, так как useBiometricLock возвращает реальные значения */}
           {(isBiometricAvailable || isCheckingHardware) && (
             <SettingsItem
               icon="finger-print-outline"

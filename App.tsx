@@ -111,6 +111,7 @@ const AppContent = () => {
           initialData={subToEdit}
           onBack={goBack}
           focusField={focusField}
+          onShowAd={showActionAd}
         />
       )}
 
@@ -123,7 +124,6 @@ const AppContent = () => {
 
       {currentScreen === "statistics" && <StatisticsScreen onBack={goBack} />}
 
-      {/* 🚀 ИСПРАВЛЕНО: Добавлена логика открытия деталей из календаря */}
       {currentScreen === "calendar" && (
         <CalendarScreen
           onBack={goBack}
@@ -144,7 +144,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  const { isLockEnabled, isUnlocked } = useSecurityStore();
+  // 🚀 ДОБАВЛЕНО: isHydrated
+  const { isLockEnabled, isUnlocked, isHydrated } = useSecurityStore();
   const { isAuthenticating, authenticate } = useBiometricLock();
 
   useEffect(() => {
@@ -184,6 +185,23 @@ export default function App() {
     );
   }
 
+  // 🚀 КРИТИЧЕСКИ ВАЖНО: Ждем, пока Zustand загрузит данные из AsyncStorage.
+  // Без этого App.tsx рендерит главный экран до того, как сработает проверка биометрии.
+  if (!isHydrated) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#F8FAFC",
+        }}
+      >
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -191,6 +209,7 @@ export default function App() {
           <BottomSheetModalProvider>
             <StatusBar style="auto" />
 
+            {/* Теперь эта проверка сработает корректно, потому что данные уже загружены */}
             {isLockEnabled && !isUnlocked ? (
               <LockScreen
                 onUnlock={authenticate}

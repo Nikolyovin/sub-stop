@@ -5,9 +5,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 interface SecurityState {
   isLockEnabled: boolean;
   isUnlocked: boolean;
+  lastUnlockTime: number;
+  isHydrated: boolean;
   setLockEnabled: (enabled: boolean) => void;
   setUnlocked: (unlocked: boolean) => void;
-  reset: () => void; // 🚀 ДОБАВЛЕНО
+  setHydrated: (value: boolean) => void;
+  reset: () => void;
 }
 
 export const useSecurityStore = create<SecurityState>()(
@@ -15,18 +18,48 @@ export const useSecurityStore = create<SecurityState>()(
     (set) => ({
       isLockEnabled: false,
       isUnlocked: true,
+      lastUnlockTime: Date.now(),
+      isHydrated: false,
 
       setLockEnabled: (enabled) =>
-        set({ isLockEnabled: enabled, isUnlocked: !enabled }),
-      setUnlocked: (unlocked) => set({ isUnlocked: unlocked }),
+        set({
+          isLockEnabled: enabled,
+          isUnlocked: true,
+          lastUnlockTime: Date.now(),
+        }),
 
-      // 🚀 МГНОВЕННЫЙ СБРОС БЕЗОПАСZNOSТИ
-      reset: () => set({ isLockEnabled: false, isUnlocked: true }),
+      setUnlocked: (unlocked) =>
+        set({
+          isUnlocked: unlocked,
+          lastUnlockTime: unlocked ? Date.now() : 0,
+        }),
+
+      setHydrated: (value) => set({ isHydrated: value }),
+
+      reset: () =>
+        set({
+          isLockEnabled: false,
+          isUnlocked: true,
+          lastUnlockTime: Date.now(),
+          isHydrated: true,
+        }),
     }),
     {
       name: "@sub_stop_security",
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ isLockEnabled: state.isLockEnabled }),
+      partialize: (state) => ({
+        isLockEnabled: state.isLockEnabled,
+        lastUnlockTime: state.lastUnlockTime,
+      }),
+      // 🚀 ГЛАВНЫЙ ФИКС: При загрузке из памяти (холодный старт), если защита включена, мы ЗАКРЫВАЕМ приложение
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          if (state.isLockEnabled) {
+            state.isUnlocked = false;
+          }
+          state.isHydrated = true;
+        }
+      },
     },
   ),
 );
