@@ -32,6 +32,7 @@ interface SettingsScreenProps {
   onOpenPremium: () => void;
 }
 
+// ... (Компоненты SettingsGroup и SettingsItem остаются без изменений, они уже идеальны)
 const SettingsGroup = ({
   title,
   children,
@@ -59,19 +60,7 @@ const SettingsItem = ({
   isLoading = false,
   styles,
   colors,
-}: {
-  icon: string;
-  title: string;
-  subtitle?: string;
-  value?: boolean;
-  onToggle?: () => void;
-  onPress?: () => void;
-  isDestructive?: boolean;
-  rightElement?: React.ReactNode;
-  isLoading?: boolean;
-  styles: any;
-  colors: any;
-}) => {
+}: any) => {
   return (
     <TouchableOpacity
       style={[styles.itemRow, onPress && { opacity: 0.9 }]}
@@ -144,8 +133,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 }) => {
   const { theme, toggleTheme, colors } = useTheme();
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // 🚀 НОВОЕ: Управление шагами модального окна ('email' или 'code')
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreStep, setRestoreStep] = useState<"email" | "code">("email");
+
   const [restoreEmail, setRestoreEmail] = useState("");
+  const [restoreCode, setRestoreCode] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
   const [isUpdatingRates, setIsUpdatingRates] = useState(false);
 
@@ -161,12 +155,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     eurRate,
     reset: resetSettings,
   } = useSettingsStore();
-
   const { isLockEnabled, reset: resetSecurity } = useSecurityStore();
-
   const { isBiometricAvailable, toggleLock, isCheckingHardware } =
     useBiometricLock();
-
   const { isPremium, setPremium, getDeviceId } = usePremiumStore();
   const { reset: resetSubscriptions } = useSubscriptionStore();
 
@@ -203,22 +194,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           onPress: async () => {
             try {
               const currentPremiumStatus = isPremium;
-
-              // 1. МГНОВЕННО очищаем оперативную память
               resetSubscriptions();
               resetSettings();
               resetSecurity();
-
-              // 2. Стираем ТОЛЬКО данные приложения, НЕ трогая флаг онбординга (@sub_stop_onboarding_seen)
               await AsyncStorage.multiRemove([
                 "sub-stop-storage",
                 "sub-stop-settings",
                 "@sub_stop_security",
               ]);
-
-              // 3. Восстанавливаем Премиум
               setPremium(currentPremiumStatus);
-
               Alert.alert(
                 "Готово",
                 "Приложение сброшено. Премиум-статус сохранен.",
@@ -249,18 +233,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ device_id: getDeviceId() }),
               });
-
-              // 1. МГНОВЕННО очищаем оперативную память
               resetSubscriptions();
               resetSettings();
               resetSecurity();
-
-              // 2. Полная очистка (включая онбординг, так как это полное удаление аккаунта)
               await AsyncStorage.clear();
-
-              // 3. Сбрасываем премиум
               setPremium(false);
-
               Alert.alert(
                 "Готово",
                 "Все данные удалены. Приложение будет закрыто.",
@@ -275,11 +252,41 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     );
   };
 
-  const handleRestore = async () => {
+  // 🚀 ШАГ 1: Запрос кода
+  const handleRequestCode = async () => {
     if (!restoreEmail.includes("@")) {
       Alert.alert("Ошибка", "Введите корректный Email");
       return;
     }
+    setIsRestoring(true);
+    try {
+      const response = await fetch(`${API_URL}/api/request-recovery-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: restoreEmail }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        // 🚀 Переходим ко второму шагу при успехе
+        setRestoreStep("code");
+      } else {
+        Alert.alert("Ошибка", data.error || "Не удалось отправить код.");
+      }
+    } catch (error: any) {
+      Alert.alert("Ошибка", "Не удалось связаться с сервером.");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  // 🚀 ШАГ 2: Восстановление по коду
+  const handleRestore = async () => {
+    // 🚀 ИЗМЕНЕНО: проверка на 4 символа
+    if (!restoreCode || restoreCode.length !== 4) {
+      Alert.alert("Ошибка", "Введите 4-значный код из письма");
+      return;
+    }
+
     setIsRestoring(true);
     try {
       const response = await fetch(`${API_URL}/api/restore-premium`, {
@@ -288,24 +295,43 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         body: JSON.stringify({
           email: restoreEmail,
           new_device_id: getDeviceId(),
+          code: restoreCode,
         }),
       });
       const data = await response.json();
+
+      if (!response.ok)
+        throw new Error(data.error || `Ошибка сервера: ${response.status}`);
+
       if (data.isPremium) {
         setPremium(true);
-        setShowRestoreModal(false);
-        Alert.alert("Успех", "Покупка восстановлена! Премиум снова активен.");
+        closeRestoreModal(); // Полностью закрываем и очищаем
+        Alert.alert(
+          "🎉 Успех",
+          "Покупка восстановлена! Премиум снова активен.",
+        );
       } else {
         Alert.alert(
           "Не найдено",
           data.message || "Покупок с таким email не найдено.",
         );
       }
-    } catch (error) {
-      Alert.alert("Ошибка", "Не удалось связаться с сервером.");
+    } catch (error: any) {
+      console.error("Ошибка восстановления:", error);
+      Alert.alert(
+        "Ошибка",
+        error.message || "Не удалось связаться с сервером.",
+      );
     } finally {
       setIsRestoring(false);
     }
+  };
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setRestoreStep("email"); // Сбрасываем на первый шаг
+    setRestoreEmail("");
+    setRestoreCode("");
   };
 
   return (
@@ -488,44 +514,117 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </Text>
       </ScrollView>
 
+      {/* 🚀 ДВУХШАГОВОЕ МОДАЛЬНОЕ ОКНО */}
       <Modal visible={showRestoreModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Восстановление покупки</Text>
-            <Text style={styles.modalDesc}>
-              Введите Email, который вы указывали при покупке Премиума.
+            <Text style={styles.modalTitle}>
+              {restoreStep === "email"
+                ? "Восстановление покупки"
+                : "Введите код"}
             </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="example@mail.com"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={restoreEmail}
-              onChangeText={setRestoreEmail}
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: colors.border }]}
-                onPress={() => setShowRestoreModal(false)}
-                disabled={isRestoring}
-              >
-                <Text style={{ color: colors.textMain, fontWeight: "bold" }}>
-                  Отмена
+
+            {restoreStep === "email" ? (
+              <>
+                <Text style={styles.modalDesc}>
+                  Введите Email, который вы указывали при покупке Премиума. Мы
+                  отправим на него код подтверждения.
                 </Text>
-              </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  placeholder="example@mail.com"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={restoreEmail}
+                  onChangeText={setRestoreEmail}
+                  editable={!isRestoring}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalDesc}>
+                  Мы отправили 4-значный код на{" "}
+                  <Text style={{ fontWeight: "bold", color: colors.primary }}>
+                    {restoreEmail}
+                  </Text>
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      textAlign: "center",
+                      fontSize: 24,
+                      letterSpacing: 8,
+                      fontWeight: "bold",
+                    },
+                  ]}
+                  placeholder="0000"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  value={restoreCode}
+                  onChangeText={setRestoreCode}
+                  editable={!isRestoring}
+                />
+                <TouchableOpacity
+                  onPress={() => setRestoreStep("email")}
+                  style={{
+                    alignSelf: "center",
+                    marginTop: -8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 14,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Изменить почту
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <View style={styles.modalActions}>
+              {restoreStep === "email" ? (
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                  onPress={handleRequestCode}
+                  disabled={isRestoring}
+                  activeOpacity={0.8}
+                >
+                  {isRestoring ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.modalBtnText}>Отправить код</Text>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.accent }]}
+                  onPress={handleRestore}
+                  disabled={isRestoring}
+                  activeOpacity={0.8}
+                >
+                  {isRestoring ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.modalBtnText}>
+                      Восстановить Премиум
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: colors.primary }]}
-                onPress={handleRestore}
+                style={styles.cancelBtn}
+                onPress={closeRestoreModal}
                 disabled={isRestoring}
               >
-                {isRestoring ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                    Восстановить
-                  </Text>
-                )}
+                <Text style={styles.cancelBtnText}>Отмена</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -537,6 +636,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
+    // ... (Все стили остаются теми же, что и в предыдущем ответе, они уже правильные)
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
       flexDirection: "row",
@@ -682,14 +782,26 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
       borderWidth: 1,
       borderColor: colors.border,
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.md,
     },
-    modalActions: { flexDirection: "row", gap: SPACING.md },
+    modalActions: {
+      flexDirection: "column",
+      gap: SPACING.md,
+      marginTop: SPACING.sm,
+    },
     modalBtn: {
-      flex: 1,
+      width: "100%",
+      minHeight: 52,
       paddingVertical: 14,
       borderRadius: BORDER_RADIUS.round,
       alignItems: "center",
       justifyContent: "center",
+    },
+    modalBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+    cancelBtn: { paddingVertical: 12, alignItems: "center" },
+    cancelBtnText: {
+      color: colors.textSecondary,
+      fontWeight: "600",
+      fontSize: 15,
     },
   });

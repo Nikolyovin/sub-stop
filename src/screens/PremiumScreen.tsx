@@ -85,12 +85,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
         response.status,
         response.statusText,
       );
-      console.log(
-        "🟢 [APP 2b] Заголовки ответа:",
-        response.headers.get("content-type"),
-      );
 
-      // 🚀 ГЛАВНЫЙ ТРЮК: читаем сырой текст ДО парсинга JSON, чтобы поймать HTML-ошибки хостинга
       const rawText = await response.text();
       console.log(
         "🟡 [APP 3] Сырой ответ от сервера (первые 200 символов):",
@@ -107,8 +102,19 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
           parseError,
         );
         throw new Error(
-          "Сервер вернул некорректный формат данных (не JSON). Возможно, сервер временно недоступен.",
+          "Сервер вернул некорректный формат данных. Возможно, он временно недоступен.",
         );
+      }
+
+      // 🚀 НОВАЯ ЛОГИКА: Обрабатываем ситуацию, когда Премиум уже куплен (статус 409)
+      if (response.status === 409) {
+        Alert.alert(
+          "Премиум уже активен",
+          data.message || "Этот email уже имеет Премиум.",
+          [{ text: "Понятно" }],
+        );
+        setIsLoading(false);
+        return; // Прерываем выполнение, браузер не откроется
       }
 
       if (!response.ok) {
@@ -126,7 +132,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
         console.log("🟢 [APP 6] Ссылка получена! Открываем браузер...");
         setShowEmailModal(false);
 
-        // Открываем браузер
         await WebBrowser.openBrowserAsync(data.url);
 
         console.log(
@@ -153,8 +158,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
         console.error("🔴 [APP 8] В ответе сервера нет поля 'url'!", data);
         Alert.alert(
           "Ошибка",
-          data.error ||
-            "Сервер не вернул ссылку на оплату. Проверьте логи консоли.",
+          data.error || "Сервер не вернул ссылку на оплату.",
         );
       }
     } catch (error: any) {
@@ -162,8 +166,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
         "🔴 🔴 🔴 [APP ❌] КРИТИЧЕСКАЯ ОШИБКА В ПРОЦЕССЕ ОПЛАТЫ 🔴 🔴 🔴",
       );
       console.error("Сообщение:", error.message);
-      console.error("Имя ошибки:", error.name);
-      console.error("Стек вызовов:", error.stack);
 
       Alert.alert(
         "Ошибка оплаты",
