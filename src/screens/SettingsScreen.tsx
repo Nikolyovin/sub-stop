@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -11,42 +11,41 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-} from "react-native";
-import Constants from "expo-constants";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useTheme } from "../theme/ThemeContext";
-import { useSettingsStore } from "../store/useSettingsStore";
-import { useSecurityStore } from "../store/useSecurityStore";
-import { useBiometricLock } from "../hooks/useBiometricLock";
-import { usePremiumStore } from "../store/usePremiumStore";
-import { useSubscriptionStore } from "../store/useSubscriptionStore";
-import { fetchAndSaveRates } from "../services/currencyService";
-import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from "../theme";
+} from 'react-native'
+import Constants from 'expo-constants'
+import DateTimePicker from '@react-native-community/datetimepicker'
+import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useTheme } from '../theme/ThemeContext'
+import { useSettingsStore } from '../store/useSettingsStore'
+import { useSecurityStore } from '../store/useSecurityStore'
+import { useBiometricLock } from '../hooks/useBiometricLock'
+import { usePremiumStore } from '../store/usePremiumStore'
+import { useSubscriptionStore } from '../store/useSubscriptionStore'
+import { fetchAndSaveRates } from '../services/currencyService'
+import { SPACING, TYPOGRAPHY, ThemeColors, BORDER_RADIUS } from '../theme'
 
-const API_URL = "https://sub-stop-server-nikolyovin.msk1.amvera.tech";
+const API_URL = 'https://sub-stop-server-nikolyovin.msk1.amvera.tech'
 
 interface SettingsScreenProps {
-  onBack: () => void;
-  onOpenPremium: () => void;
+  onBack: () => void
+  onOpenPremium: () => void
 }
 
-// ... (Компоненты SettingsGroup и SettingsItem остаются без изменений, они уже идеальны)
 const SettingsGroup = ({
   title,
   children,
   styles,
 }: {
-  title?: string;
-  children: React.ReactNode;
-  styles: any;
+  title?: string
+  children: React.ReactNode
+  styles: any
 }) => (
   <View style={styles.groupContainer}>
     {title && <Text style={styles.groupTitle}>{title}</Text>}
     <View style={styles.groupCard}>{children}</View>
   </View>
-);
+)
 
 const SettingsItem = ({
   icon,
@@ -94,7 +93,7 @@ const SettingsItem = ({
       </View>
       {isLoading ? (
         <ActivityIndicator
-          size="small"
+          size='small'
           color={colors.primary}
           style={styles.rightElement}
         />
@@ -118,30 +117,29 @@ const SettingsItem = ({
         </View>
       ) : (
         <Ionicons
-          name="chevron-forward"
+          name='chevron-forward'
           size={20}
           color={colors.textSecondary}
         />
       )}
     </TouchableOpacity>
-  );
-};
+  )
+}
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onBack,
   onOpenPremium,
 }) => {
-  const { theme, toggleTheme, colors } = useTheme();
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const { theme, toggleTheme, colors } = useTheme()
+  const [showTimePicker, setShowTimePicker] = useState(false)
 
-  // 🚀 НОВОЕ: Управление шагами модального окна ('email' или 'code')
-  const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [restoreStep, setRestoreStep] = useState<"email" | "code">("email");
+  const [showRestoreModal, setShowRestoreModal] = useState(false)
+  const [restoreStep, setRestoreStep] = useState<'email' | 'code'>('email')
 
-  const [restoreEmail, setRestoreEmail] = useState("");
-  const [restoreCode, setRestoreCode] = useState("");
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [isUpdatingRates, setIsUpdatingRates] = useState(false);
+  const [restoreEmail, setRestoreEmail] = useState('')
+  const [restoreCode, setRestoreCode] = useState('')
+  const [isRestoring, setIsRestoring] = useState(false)
+  const [isUpdatingRates, setIsUpdatingRates] = useState(false)
 
   const {
     notifyTrials,
@@ -154,191 +152,181 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     usdRate,
     eurRate,
     reset: resetSettings,
-  } = useSettingsStore();
-  const { isLockEnabled, reset: resetSecurity } = useSecurityStore();
+  } = useSettingsStore()
+  const { isLockEnabled, reset: resetSecurity } = useSecurityStore()
   const { isBiometricAvailable, toggleLock, isCheckingHardware } =
-    useBiometricLock();
-  const { isPremium, setPremium, getDeviceId } = usePremiumStore();
-  const { reset: resetSubscriptions } = useSubscriptionStore();
+    useBiometricLock()
+  const { isPremium, setPremium, getDeviceId } = usePremiumStore()
+  const { reset: resetSubscriptions } = useSubscriptionStore()
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const isAnyNotificationEnabled = notifyTrials || notifyRegular;
+  const styles = useMemo(() => createStyles(colors), [colors])
+  const isAnyNotificationEnabled = notifyTrials || notifyRegular
   const reminderDate = useMemo(() => {
-    const d = new Date();
-    d.setHours(reminderHour, reminderMinute);
-    return d;
-  }, [reminderHour, reminderMinute]);
+    const d = new Date()
+    d.setHours(reminderHour, reminderMinute)
+    return d
+  }, [reminderHour, reminderMinute])
 
   const onTimeChange = (event: any, date?: Date) => {
-    if (Platform.OS === "android") setShowTimePicker(false);
-    if (date) setReminderTime(date.getHours(), date.getMinutes());
-  };
+    if (Platform.OS === 'android') setShowTimePicker(false)
+    if (date) setReminderTime(date.getHours(), date.getMinutes())
+  }
 
   const handleUpdateRates = async () => {
-    setIsUpdatingRates(true);
-    const success = await fetchAndSaveRates();
-    setIsUpdatingRates(false);
+    setIsUpdatingRates(true)
+    const success = await fetchAndSaveRates()
+    setIsUpdatingRates(false)
     if (!success)
-      Alert.alert("Ошибка", "Не удалось обновить курсы. Проверьте интернет.");
-  };
+      Alert.alert('Ошибка', 'Не удалось обновить курсы. Проверьте интернет.')
+  }
 
   const handleResetApp = async () => {
     Alert.alert(
-      "Сбросить приложение?",
-      "Это удалит все ваши подписки, настройки и календарь. \n\n✅ Ваш Премиум-статус будет сохранен.",
+      'Сбросить приложение?',
+      'Это удалит все ваши подписки, настройки и календарь. \n\n✅ Ваш Премиум-статус будет сохранен.',
       [
-        { text: "Отмена", style: "cancel" },
+        { text: 'Отмена', style: 'cancel' },
         {
-          text: "Сбросить",
-          style: "destructive",
+          text: 'Сбросить',
+          style: 'destructive',
           onPress: async () => {
             try {
-              const currentPremiumStatus = isPremium;
-              resetSubscriptions();
-              resetSettings();
-              resetSecurity();
+              const currentPremiumStatus = isPremium
+              resetSubscriptions()
+              resetSettings()
+              resetSecurity()
               await AsyncStorage.multiRemove([
-                "sub-stop-storage",
-                "sub-stop-settings",
-                "@sub_stop_security",
-              ]);
-              setPremium(currentPremiumStatus);
+                'sub-stop-storage',
+                'sub-stop-settings',
+                '@sub_stop_security',
+              ])
+              setPremium(currentPremiumStatus)
               Alert.alert(
-                "Готово",
-                "Приложение сброшено. Премиум-статус сохранен.",
-              );
-              onBack();
+                'Готово',
+                'Приложение сброшено. Премиум-статус сохранен.',
+              )
+              onBack()
             } catch (error) {
-              Alert.alert("Ошибка", "Не удалось сбросить данные.");
+              Alert.alert('Ошибка', 'Не удалось сбросить данные.')
             }
           },
         },
       ],
-    );
-  };
+    )
+  }
 
   const handleDeleteAllData = () => {
     Alert.alert(
-      "⚠️ Удалить аккаунт и данные?",
-      "Это действие НЕОБРАТИМО.\n\n1. Все подписки будут удалены.\n2. Данные о покупке (Email, Device ID) будут навсегда удалены с нашего сервера в соответствии с 152-ФЗ.\n\n❌ Вы НЕ сможете автоматически восстановить Премиум-статус в будущем.",
+      '⚠️ Удалить аккаунт и данные?',
+      'Это действие НЕОБРАТИМО.\n\n1. Все подписки будут удалены.\n2. Данные о покупке (Email, Device ID) будут навсегда удалены с нашего сервера в соответствии с 152-ФЗ.\n\n❌ Вы НЕ сможете автоматически восстановить Премиум-статус в будущем.',
       [
-        { text: "Отмена", style: "cancel" },
+        { text: 'Отмена', style: 'cancel' },
         {
-          text: "Да, удалить всё",
-          style: "destructive",
+          text: 'Да, удалить всё',
+          style: 'destructive',
           onPress: async () => {
             try {
               await fetch(`${API_URL}/api/delete-data`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ device_id: getDeviceId() }),
-              });
-              resetSubscriptions();
-              resetSettings();
-              resetSecurity();
-              await AsyncStorage.clear();
-              setPremium(false);
+              })
+              resetSubscriptions()
+              resetSettings()
+              resetSecurity()
+              await AsyncStorage.clear()
+              setPremium(false)
               Alert.alert(
-                "Готово",
-                "Все данные удалены. Приложение будет закрыто.",
-                [{ text: "ОК", onPress: () => onBack() }],
-              );
+                'Готово',
+                'Все данные удалены. Приложение будет закрыто.',
+                [{ text: 'ОК', onPress: () => onBack() }],
+              )
             } catch (error) {
-              Alert.alert("Ошибка", "Не удалось связаться с сервером.");
+              Alert.alert('Ошибка', 'Не удалось связаться с сервером.')
             }
           },
         },
       ],
-    );
-  };
+    )
+  }
 
-  // 🚀 ШАГ 1: Запрос кода
   const handleRequestCode = async () => {
-    if (!restoreEmail.includes("@")) {
-      Alert.alert("Ошибка", "Введите корректный Email");
-      return;
+    if (!restoreEmail.includes('@')) {
+      Alert.alert('Ошибка', 'Введите корректный Email')
+      return
     }
-    setIsRestoring(true);
+    setIsRestoring(true)
     try {
       const response = await fetch(`${API_URL}/api/request-recovery-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: restoreEmail }),
-      });
-      const data = await response.json();
+      })
+      const data = await response.json()
       if (response.ok) {
-        // 🚀 Переходим ко второму шагу при успехе
-        setRestoreStep("code");
+        setRestoreStep('code')
       } else {
-        Alert.alert("Ошибка", data.error || "Не удалось отправить код.");
+        Alert.alert('Ошибка', data.error || 'Не удалось отправить код.')
       }
     } catch (error: any) {
-      Alert.alert("Ошибка", "Не удалось связаться с сервером.");
+      Alert.alert('Ошибка', 'Не удалось связаться с сервером.')
     } finally {
-      setIsRestoring(false);
+      setIsRestoring(false)
     }
-  };
+  }
 
-  // 🚀 ШАГ 2: Восстановление по коду
   const handleRestore = async () => {
-    // 🚀 ИЗМЕНЕНО: проверка на 4 символа
     if (!restoreCode || restoreCode.length !== 4) {
-      Alert.alert("Ошибка", "Введите 4-значный код из письма");
-      return;
+      Alert.alert('Ошибка', 'Введите 4-значный код из письма')
+      return
     }
 
-    setIsRestoring(true);
+    setIsRestoring(true)
     try {
       const response = await fetch(`${API_URL}/api/restore-premium`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: restoreEmail,
           new_device_id: getDeviceId(),
           code: restoreCode,
         }),
-      });
-      const data = await response.json();
+      })
+      const data = await response.json()
 
       if (!response.ok)
-        throw new Error(data.error || `Ошибка сервера: ${response.status}`);
+        throw new Error(data.error || `Ошибка сервера: ${response.status}`)
 
       if (data.isPremium) {
-        setPremium(true);
-        closeRestoreModal(); // Полностью закрываем и очищаем
-        Alert.alert(
-          "🎉 Успех",
-          "Покупка восстановлена! Премиум снова активен.",
-        );
+        setPremium(true)
+        closeRestoreModal()
+        Alert.alert('🎉 Успех', 'Покупка восстановлена! Премиум снова активен.')
       } else {
         Alert.alert(
-          "Не найдено",
-          data.message || "Покупок с таким email не найдено.",
-        );
+          'Не найдено',
+          data.message || 'Покупок с таким email не найдено.',
+        )
       }
     } catch (error: any) {
-      console.error("Ошибка восстановления:", error);
-      Alert.alert(
-        "Ошибка",
-        error.message || "Не удалось связаться с сервером.",
-      );
+      console.error('Ошибка восстановления:', error)
+      Alert.alert('Ошибка', error.message || 'Не удалось связаться с сервером.')
     } finally {
-      setIsRestoring(false);
+      setIsRestoring(false)
     }
-  };
+  }
 
   const closeRestoreModal = () => {
-    setShowRestoreModal(false);
-    setRestoreStep("email"); // Сбрасываем на первый шаг
-    setRestoreEmail("");
-    setRestoreCode("");
-  };
+    setShowRestoreModal(false)
+    setRestoreStep('email')
+    setRestoreEmail('')
+    setRestoreCode('')
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          <Ionicons name='arrow-back' size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Настройки</Text>
         <View style={{ width: 44 }} />
@@ -348,19 +336,19 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <SettingsGroup title="Основные" styles={styles}>
+        <SettingsGroup title='Основные' styles={styles}>
           <SettingsItem
-            icon="moon-outline"
-            title="Темная тема"
-            value={theme === "dark"}
+            icon='moon-outline'
+            title='Темная тема'
+            value={theme === 'dark'}
             onToggle={toggleTheme}
             styles={styles}
             colors={colors}
           />
           {(isBiometricAvailable || isCheckingHardware) && (
             <SettingsItem
-              icon="finger-print-outline"
-              title="Вход по биометрии"
+              icon='finger-print-outline'
+              title='Вход по биометрии'
               value={isLockEnabled}
               onToggle={() => toggleLock(!isLockEnabled)}
               isLoading={isCheckingHardware}
@@ -370,10 +358,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           )}
         </SettingsGroup>
 
-        <SettingsGroup title="Уведомления" styles={styles}>
+        <SettingsGroup title='Уведомления' styles={styles}>
           <SettingsItem
-            icon="time-outline"
-            title="Обычные подписки"
+            icon='time-outline'
+            title='Обычные подписки'
             value={notifyRegular}
             onToggle={toggleNotifyRegular}
             styles={styles}
@@ -381,8 +369,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           />
           <View style={styles.divider} />
           <SettingsItem
-            icon="alert-circle-outline"
-            title="Пробные периоды (Триалы)"
+            icon='alert-circle-outline'
+            title='Пробные периоды (Триалы)'
             value={notifyTrials}
             onToggle={toggleNotifyTrials}
             styles={styles}
@@ -396,7 +384,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           >
             <View style={styles.iconBox}>
               <Ionicons
-                name="alarm-outline"
+                name='alarm-outline'
                 size={20}
                 color={
                   isAnyNotificationEnabled
@@ -421,11 +409,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 !isAnyNotificationEnabled && { color: colors.textSecondary },
               ]}
             >
-              {reminderHour.toString().padStart(2, "0")}:
-              {reminderMinute.toString().padStart(2, "0")}
+              {reminderHour.toString().padStart(2, '0')}:
+              {reminderMinute.toString().padStart(2, '0')}
             </Text>
             <Ionicons
-              name="chevron-forward"
+              name='chevron-forward'
               size={20}
               color={colors.textSecondary}
             />
@@ -435,17 +423,17 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         {showTimePicker && (
           <DateTimePicker
             value={reminderDate}
-            mode="time"
-            display="default"
+            mode='time'
+            display='default'
             onValueChange={onTimeChange}
             onDismiss={() => setShowTimePicker(false)}
           />
         )}
 
-        <SettingsGroup title="Финансы и данные" styles={styles}>
+        <SettingsGroup title='Финансы и данные' styles={styles}>
           <SettingsItem
-            icon="refresh-outline"
-            title="Курсы валют"
+            icon='refresh-outline'
+            title='Курсы валют'
             subtitle={`USD: ${usdRate.toFixed(2)} ₽ • EUR: ${eurRate.toFixed(2)} ₽`}
             onPress={handleUpdateRates}
             isLoading={isUpdatingRates}
@@ -454,8 +442,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           />
           <View style={styles.divider} />
           <SettingsItem
-            icon={isPremium ? "star" : "star-outline"}
-            title={isPremium ? "Премиум активен" : "Купить Премиум"}
+            icon={isPremium ? 'star' : 'star-outline'}
+            title={isPremium ? 'Премиум активен' : 'Купить Премиум'}
             onPress={onOpenPremium}
             rightElement={
               isPremium ? (
@@ -465,31 +453,37 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             styles={styles}
             colors={colors}
           />
-          <View style={styles.divider} />
-          <SettingsItem
-            icon="download-outline"
-            title="Восстановить покупку"
-            subtitle="Если сменили устройство"
-            onPress={() => setShowRestoreModal(true)}
-            styles={styles}
-            colors={colors}
-          />
+
+          {/* 🚀 СКРЫВАЕМ ВОССТАНОВЛЕНИЕ, ЕСЛИ ПРЕМИУМ УЖЕ АКТИВЕН */}
+          {!isPremium && (
+            <>
+              <View style={styles.divider} />
+              <SettingsItem
+                icon='download-outline'
+                title='Восстановить покупку'
+                subtitle='Если сменили устройство'
+                onPress={() => setShowRestoreModal(true)}
+                styles={styles}
+                colors={colors}
+              />
+            </>
+          )}
         </SettingsGroup>
 
-        <SettingsGroup title="Управление данными" styles={styles}>
+        <SettingsGroup title='Управление данными' styles={styles}>
           <SettingsItem
-            icon="trash-outline"
-            title="Сбросить приложение"
-            subtitle="Удалить подписки, сохранить Премиум"
+            icon='trash-outline'
+            title='Сбросить приложение'
+            subtitle='Удалить подписки, сохранить Премиум'
             onPress={handleResetApp}
             styles={styles}
             colors={colors}
           />
           <View style={styles.divider} />
           <SettingsItem
-            icon="close-circle-outline"
-            title="Удалить аккаунт и данные"
-            subtitle="Полное удаление с сервера (152-ФЗ)"
+            icon='close-circle-outline'
+            title='Удалить аккаунт и данные'
+            subtitle='Полное удаление с сервера (152-ФЗ)'
             isDestructive
             onPress={handleDeleteAllData}
             styles={styles}
@@ -497,12 +491,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           />
         </SettingsGroup>
 
-        <SettingsGroup title="О приложении" styles={styles}>
+        <SettingsGroup title='О приложении' styles={styles}>
           <SettingsItem
-            icon="shield-checkmark-outline"
-            title="Политика конфиденциальности"
+            icon='shield-checkmark-outline'
+            title='Политика конфиденциальности'
             onPress={() =>
-              Linking.openURL("https://nikolyovin.github.io/sub-stop-privacy/")
+              Linking.openURL('https://nikolyovin.github.io/sub-stop-privacy/')
             }
             styles={styles}
             colors={colors}
@@ -510,21 +504,20 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </SettingsGroup>
 
         <Text style={styles.versionText}>
-          Версия {Constants.expoConfig?.version || "1.0.0"}
+          Версия {Constants.expoConfig?.version || '1.0.0'}
         </Text>
       </ScrollView>
 
-      {/* 🚀 ДВУХШАГОВОЕ МОДАЛЬНОЕ ОКНО */}
-      <Modal visible={showRestoreModal} transparent animationType="fade">
+      <Modal visible={showRestoreModal} transparent animationType='fade'>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {restoreStep === "email"
-                ? "Восстановление покупки"
-                : "Введите код"}
+              {restoreStep === 'email'
+                ? 'Восстановление покупки'
+                : 'Введите код'}
             </Text>
 
-            {restoreStep === "email" ? (
+            {restoreStep === 'email' ? (
               <>
                 <Text style={styles.modalDesc}>
                   Введите Email, который вы указывали при покупке Премиума. Мы
@@ -532,10 +525,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 </Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="example@mail.com"
+                  placeholder='example@mail.com'
                   placeholderTextColor={colors.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
+                  keyboardType='email-address'
+                  autoCapitalize='none'
                   value={restoreEmail}
                   onChangeText={setRestoreEmail}
                   editable={!isRestoring}
@@ -544,8 +537,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             ) : (
               <>
                 <Text style={styles.modalDesc}>
-                  Мы отправили 4-значный код на{" "}
-                  <Text style={{ fontWeight: "bold", color: colors.primary }}>
+                  Мы отправили 4-значный код на{' '}
+                  <Text style={{ fontWeight: 'bold', color: colors.primary }}>
                     {restoreEmail}
                   </Text>
                 </Text>
@@ -553,24 +546,24 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   style={[
                     styles.input,
                     {
-                      textAlign: "center",
+                      textAlign: 'center',
                       fontSize: 24,
                       letterSpacing: 8,
-                      fontWeight: "bold",
+                      fontWeight: 'bold',
                     },
                   ]}
-                  placeholder="0000"
+                  placeholder='0000'
                   placeholderTextColor={colors.textSecondary}
-                  keyboardType="number-pad"
+                  keyboardType='number-pad'
                   maxLength={4}
                   value={restoreCode}
                   onChangeText={setRestoreCode}
                   editable={!isRestoring}
                 />
                 <TouchableOpacity
-                  onPress={() => setRestoreStep("email")}
+                  onPress={() => setRestoreStep('email')}
                   style={{
-                    alignSelf: "center",
+                    alignSelf: 'center',
                     marginTop: -8,
                     marginBottom: 8,
                   }}
@@ -579,7 +572,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     style={{
                       color: colors.primary,
                       fontSize: 14,
-                      fontWeight: "600",
+                      fontWeight: '600',
                     }}
                   >
                     Изменить почту
@@ -589,7 +582,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             )}
 
             <View style={styles.modalActions}>
-              {restoreStep === "email" ? (
+              {restoreStep === 'email' ? (
                 <TouchableOpacity
                   style={[styles.modalBtn, { backgroundColor: colors.primary }]}
                   onPress={handleRequestCode}
@@ -597,7 +590,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   activeOpacity={0.8}
                 >
                   {isRestoring ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color='#fff' />
                   ) : (
                     <Text style={styles.modalBtnText}>Отправить код</Text>
                   )}
@@ -610,7 +603,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   activeOpacity={0.8}
                 >
                   {isRestoring ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color='#fff' />
                   ) : (
                     <Text style={styles.modalBtnText}>
                       Восстановить Премиум
@@ -631,17 +624,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </View>
       </Modal>
     </View>
-  );
-};
+  )
+}
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    // ... (Все стили остаются теми же, что и в предыдущем ответе, они уже правильные)
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 40 },
     header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       paddingHorizontal: SPACING.lg,
       height: 56,
       marginBottom: SPACING.sm,
@@ -649,8 +641,8 @@ const createStyles = (colors: ThemeColors) =>
     backButton: {
       width: 44,
       height: 44,
-      justifyContent: "center",
-      alignItems: "flex-start",
+      justifyContent: 'center',
+      alignItems: 'flex-start',
     },
     headerTitle: { ...TYPOGRAPHY.title, color: colors.textMain, fontSize: 20 },
     content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xl },
@@ -658,27 +650,27 @@ const createStyles = (colors: ThemeColors) =>
     groupTitle: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      textTransform: "uppercase",
+      textTransform: 'uppercase',
       marginBottom: 6,
       marginLeft: 4,
-      fontWeight: "600",
+      fontWeight: '600',
     },
     groupCard: {
       backgroundColor: colors.card,
       borderRadius: BORDER_RADIUS.lg,
       borderWidth: 1,
       borderColor: colors.border,
-      overflow: "hidden",
+      overflow: 'hidden',
     },
     itemRow: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: 'row',
+      alignItems: 'center',
       paddingVertical: 14,
       paddingHorizontal: SPACING.md,
     },
     customItemRow: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: 'row',
+      alignItems: 'center',
       paddingVertical: 14,
       paddingHorizontal: SPACING.md,
     },
@@ -691,8 +683,8 @@ const createStyles = (colors: ThemeColors) =>
       width: 32,
       height: 32,
       borderRadius: 8,
-      justifyContent: "center",
-      alignItems: "center",
+      justifyContent: 'center',
+      alignItems: 'center',
       marginRight: SPACING.md,
     },
     textContainer: { flex: 1 },
@@ -700,7 +692,7 @@ const createStyles = (colors: ThemeColors) =>
       ...TYPOGRAPHY.body,
       color: colors.textMain,
       fontSize: 15,
-      fontWeight: "500",
+      fontWeight: '500',
     },
     itemSubtitle: {
       ...TYPOGRAPHY.caption,
@@ -711,15 +703,15 @@ const createStyles = (colors: ThemeColors) =>
     itemValue: {
       ...TYPOGRAPHY.body,
       color: colors.primary,
-      fontWeight: "600",
+      fontWeight: '600',
       marginRight: 8,
     },
-    rightElement: { marginLeft: "auto" },
+    rightElement: { marginLeft: 'auto' },
     activeBadge: {
       backgroundColor: `${colors.accent}20`,
       color: colors.accent,
       fontSize: 12,
-      fontWeight: "bold",
+      fontWeight: 'bold',
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
@@ -728,15 +720,15 @@ const createStyles = (colors: ThemeColors) =>
       width: 44,
       height: 24,
       borderRadius: 12,
-      justifyContent: "center",
+      justifyContent: 'center',
       padding: 2,
     },
     toggleThumb: {
       width: 20,
       height: 20,
       borderRadius: 10,
-      backgroundColor: "#FFFFFF",
-      shadowColor: "#000",
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.2,
       shadowRadius: 2,
@@ -745,14 +737,14 @@ const createStyles = (colors: ThemeColors) =>
     versionText: {
       ...TYPOGRAPHY.caption,
       color: colors.textSecondary,
-      textAlign: "center",
+      textAlign: 'center',
       marginTop: SPACING.md,
       marginBottom: SPACING.xl,
     },
     modalOverlay: {
       flex: 1,
-      backgroundColor: "rgba(0,0,0,0.5)",
-      justifyContent: "center",
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
       padding: SPACING.lg,
     },
     modalContent: {
@@ -765,12 +757,12 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMain,
       fontSize: 20,
       marginBottom: SPACING.xs,
-      textAlign: "center",
+      textAlign: 'center',
     },
     modalDesc: {
       ...TYPOGRAPHY.body,
       color: colors.textSecondary,
-      textAlign: "center",
+      textAlign: 'center',
       marginBottom: SPACING.lg,
       fontSize: 14,
     },
@@ -785,23 +777,23 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.md,
     },
     modalActions: {
-      flexDirection: "column",
+      flexDirection: 'column',
       gap: SPACING.md,
       marginTop: SPACING.sm,
     },
     modalBtn: {
-      width: "100%",
+      width: '100%',
       minHeight: 52,
       paddingVertical: 14,
       borderRadius: BORDER_RADIUS.round,
-      alignItems: "center",
-      justifyContent: "center",
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    modalBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-    cancelBtn: { paddingVertical: 12, alignItems: "center" },
+    modalBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    cancelBtn: { paddingVertical: 12, alignItems: 'center' },
     cancelBtnText: {
       color: colors.textSecondary,
-      fontWeight: "600",
+      fontWeight: '600',
       fontSize: 15,
     },
-  });
+  })
