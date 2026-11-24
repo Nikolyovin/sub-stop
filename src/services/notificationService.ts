@@ -1,7 +1,9 @@
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Subscription } from '../types'
-import { formatCurrency } from '../utils/formatUtils' // 🚀 Для корректной валюты
+import { parseDate } from '../utils/dateUtils'
+import { formatCurrency } from '../utils/formatUtils'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -11,16 +13,6 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 })
-
-export const sendTestNotification = async () => {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Тестовое уведомление 🔔',
-      body: 'Ура! Уведомления работают. Скоро я напомню тебе о списании.',
-    },
-    trigger: null,
-  })
-}
 
 export const requestNotificationPermissions = async () => {
   const { status: existingStatus } = await Notifications.getPermissionsAsync()
@@ -61,15 +53,44 @@ export const scheduleSubscriptionReminder = async (
   if (isTrial && !settings.notifyTrials) return
   if (!isTrial && !settings.notifyRegular) return
 
-  const paymentDate = new Date(subscription.nextPaymentDate)
+  const paymentDate = parseDate(subscription.nextPaymentDate)
 
-  // За 1 день до списания, в то время, которое выбрал пользователь
+  // 1. Вычисляем идеальное время: за 1 день до оплаты, в заданное время
   const reminderDate = new Date(paymentDate)
   reminderDate.setDate(reminderDate.getDate() - 1)
   reminderDate.setHours(settings.hour, settings.minute, 0, 0)
 
-  // Если время уже прошло — ничего не планируем
-  if (reminderDate.getTime() <= Date.now()) return
+  let finalTriggerDate = reminderDate
+  let isFallbackTrigger = false
+
+  // 🚀 Проверяем, не планировали ли мы уже уведомление для этой подписки
+  const storageKey = `@notif_planned_${subscription.id}`
+  const previouslyPlannedTime = await AsyncStorage.getItem(storageKey)
+  const now = Date.now()
+
+  // 2. Если идеальное время уже прошло, но оплата еще в будущем
+  if (reminderDate.getTime() <= now) {
+    if (paymentDate.getTime() > now) {
+      // Если мы УЖЕ планировали уведомление и оно еще не сработало — не сдвигаем
+      if (previouslyPlannedTime && parseInt(previouslyPlannedTime) > now) {
+        console.log('⏭️ Уведомление уже запланировано, не сдвигаем.')
+        return
+      }
+
+      // Иначе ставим на сейчас + 1 минута (только первый раз)
+      console.log('⚠️ Время уведомления прошло. Планируем на 1 минуту вперед.')
+      finalTriggerDate = new Date(now + 60 * 1000)
+      isFallbackTrigger = true
+    } else {
+      console.log('⏭️ Оплата уже прошла, уведомление не планируем.')
+      return
+    }
+  }
+
+  console.log(
+    '⏰ Уведомление запланировано на:',
+    finalTriggerDate.toLocaleString(),
+  )
 
   let title = ''
   let body = ''
@@ -77,20 +98,37 @@ export const scheduleSubscriptionReminder = async (
   if (isTrial) {
     const nextPrice = subscription.regularPrice || subscription.price
     title = 'Заканчивается пробный период ⏳'
-    // 🚀 formatCurrency сам подставит ₽ / $ / € и отформатирует тысячи
     body = `Завтра закончится промо-период на «${subscription.name}». Далее спишут ${formatCurrency(nextPrice, subscription.currency)}.`
   } else {
     title = 'Скоро списание! 💸'
-    // 🚀 Было: `${subscription.price} ₽` — хардкод рублей
     body = `Завтра спишут ${formatCurrency(subscription.price, subscription.currency)} за подписку «${subscription.name}».`
   }
 
-  await Notifications.scheduleNotificationAsync({
-    content: { title, body, data: { subscriptionId: subscription.id } },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date: reminderDate,
-      channelId: 'subscriptions',
-    },
-  })
+  try {
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: { subscriptionId: subscription.id },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: finalTriggerDate,
+        channelId: 'subscriptions',
+      },
+    })
+
+    // 🚀 Запоминаем, на какое время мы запланировали уведомление
+    await AsyncStorage.setItem(storageKey, String(finalTriggerDate.getTime()))
+
+    console.log(
+      '✅ Уведомление запланировано с ID:',
+      notificationId,
+      'на',
+      finalTriggerDate.toLocaleString(),
+    )
+  } catch (error) {
+    console.error('❌ Ошибка планирования уведомления:', error)
+  }
 }
