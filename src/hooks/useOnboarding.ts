@@ -6,7 +6,8 @@ const ONBOARDING_KEY = "@sub_stop_onboarding_seen";
 export const ONBOARDING_DATA = [
   {
     id: "1",
-    lottie: require("../assets/lottie/wallet.json"),
+    // 🚀 ИСПРАВЛЕНО: ../../ вместо ../
+    lottie: require("../../assets/lottie/wallet.json"),
     title: "Полный контроль над расходами",
     description:
       "Собирайте все подписки в одном месте и легко управляйте своим бюджетом.",
@@ -14,17 +15,17 @@ export const ONBOARDING_DATA = [
   },
   {
     id: "2",
-    lottie: require("../assets/lottie/bell.json"),
-    title: "Ни одной забытой подписки",
+    lottie: require("../../assets/lottie/bell.json"),
+    title: "Ни одного забытого триала",
     description: "Умный календарь и уведомления напомнят об оплате заранее.",
     color: "#F59E0B",
   },
   {
     id: "3",
-    lottie: require("../assets/lottie/lock.json"),
+    lottie: require("../../assets/lottie/lock.json"),
     title: "Премиум без подписок",
     description:
-      "Биометрия доступна всем. А за 199 ₽ вы получите календарь списаний и интерфейс без рекламы навсегда.",
+      "Биометрия доступна всем. А за 199 ₽ вы получите календарь списаний и чистый интерфейс без рекламы навсегда.",
     color: "#10B981",
   },
 ];
