@@ -1,63 +1,54 @@
-import { useState, useCallback } from 'react'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useState, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const ONBOARDING_KEY = '@sub_stop_onboarding_seen'
+const ONBOARDING_KEY = "@sub_stop_onboarding_seen";
 
 export const ONBOARDING_DATA = [
   {
-    id: '1',
-    icon: 'pie-chart-outline' as const,
-    title: 'Все траты под контролем',
+    id: "1",
+    lottie: require("../assets/lottie/wallet.json"),
+    title: "Полный контроль над расходами",
     description:
-      'Добавляйте подписки и смотрите, сколько денег уходит на сервисы каждый месяц. Наглядная статистика по категориям и общий бюджет.',
-    color: '#2563EB', // Фирменный синий
+      "Собирайте все подписки в одном месте и легко управляйте своим бюджетом.",
+    color: "#2563EB",
   },
   {
-    id: '2',
-    icon: 'notifications-outline' as const,
-    title: 'Умные уведомления',
-    description:
-      'Приложение напомнит о списании заранее. Настройте удобное время для пушей, чтобы успеть отменить ненужные подписки.',
-    color: '#F59E0B', // Оранжевый
+    id: "2",
+    lottie: require("../assets/lottie/bell.json"),
+    title: "Ни одной забытой подписки",
+    description: "Умный календарь и уведомления напомнят об оплате заранее.",
+    color: "#F59E0B",
   },
   {
-    id: '3',
-    icon: 'wallet-outline' as const, // 🚀 Новая иконка кошелька
-    title: 'Не платите лишнего',
+    id: "3",
+    lottie: require("../assets/lottie/lock.json"),
+    title: "Премиум без подписок",
     description:
-      'Мы подсветим окончание пробных периодов красным и пришлем двойное напоминание. Вы точно успеете отменить триал до списания денег.',
-    color: '#F97316', // 🚀 Насыщенный оранжевый (внимание/деньги)
+      "Биометрия доступна всем. А за 199 ₽ вы получите календарь списаний и интерфейс без рекламы навсегда.",
+    color: "#10B981",
   },
-  {
-    id: '4',
-    icon: 'shield-checkmark-outline' as const,
-    title: 'Безопасность данных',
-    description:
-      'Защитите свои финансовые данные с помощью Face ID или отпечатка пальца. Ваши подписки доступны только вам.',
-    color: '#10B981', // Зеленый (Accent)
-  },
-]
+];
 
 export const useOnboarding = (onFinishCallback: () => void) => {
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const finishOnboarding = useCallback(async () => {
     try {
-      await AsyncStorage.setItem(ONBOARDING_KEY, 'true')
-      onFinishCallback()
+      await AsyncStorage.setItem(ONBOARDING_KEY, "true");
+      onFinishCallback();
     } catch (e) {
-      console.error('Ошибка сохранения онбординга', e)
-      onFinishCallback()
+      console.error("Ошибка сохранения онбординга", e);
+      onFinishCallback();
     }
-  }, [onFinishCallback])
+  }, [onFinishCallback]);
 
   const nextSlide = useCallback(() => {
     if (currentIndex < ONBOARDING_DATA.length - 1) {
-      setCurrentIndex((prev) => prev + 1)
+      setCurrentIndex((prev) => prev + 1);
     } else {
-      finishOnboarding()
+      finishOnboarding();
     }
-  }, [currentIndex, finishOnboarding])
+  }, [currentIndex, finishOnboarding]);
 
   return {
     currentIndex,
@@ -65,5 +56,5 @@ export const useOnboarding = (onFinishCallback: () => void) => {
     nextSlide,
     finishOnboarding,
     isLastSlide: currentIndex === ONBOARDING_DATA.length - 1,
-  }
-}
+  };
+};
