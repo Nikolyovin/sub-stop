@@ -6,7 +6,7 @@ import { format, addMonths, addYears } from 'date-fns'
 import { Subscription } from '../types'
 import { parseDate } from '../utils/dateUtils'
 import * as Notifications from 'expo-notifications'
-import AsyncStorage from '@react-native-async-storage/async-storage' // 🚀 Импорт AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export const useSubscriptionSync = () => {
   const { subscriptions, batchUpdateSubscriptions } = useSubscriptionStore()
@@ -14,18 +14,26 @@ export const useSubscriptionSync = () => {
     useSettingsStore()
 
   const lastSyncedRef = useRef<string>('')
+  const prevTimeRef = useRef<string>('')
 
   useEffect(() => {
     if (subscriptions.length === 0) return
 
-    // 🚀 Сигнатура включает время напоминаний, чтобы sync запускался при его изменении
-    const signature =
-      subscriptions
-        .map((s) => `${s.id}:${s.nextPaymentDate}:${s.status}:${s.price}`)
-        .join('|') + `|${reminderHour}:${reminderMinute}`
+    const currentTime = `${reminderHour}:${reminderMinute}`
+    const timeChanged =
+      prevTimeRef.current !== '' && prevTimeRef.current !== currentTime
+    prevTimeRef.current = currentTime
 
-    if (lastSyncedRef.current === signature) return
-    lastSyncedRef.current = signature
+    // 🚀 Сигнатура только для проверки дат (автопродления)
+    const dateSignature = subscriptions
+      .map((s) => `${s.id}:${s.nextPaymentDate}:${s.status}:${s.price}`)
+      .join('|')
+
+    const fullSignature = `${dateSignature}|${currentTime}`
+
+    // 🚀 Если время не менялось и даты не менялись — ничего не делаем
+    if (lastSyncedRef.current === fullSignature && !timeChanged) return
+    lastSyncedRef.current = fullSignature
 
     const syncSubscriptions = async () => {
       const today = new Date()
@@ -39,7 +47,7 @@ export const useSubscriptionSync = () => {
       }
 
       const updates: Array<{ id: string; data: Partial<Subscription> }> = []
-      const updatedSubsForNotifications: Subscription[] = []
+      const subsToUpdateNotifications: Subscription[] = []
 
       for (const sub of subscriptions) {
         let currentDate = parseDate(sub.nextPaymentDate)
@@ -73,14 +81,15 @@ export const useSubscriptionSync = () => {
             },
           })
 
-          updatedSubsForNotifications.push({
+          subsToUpdateNotifications.push({
             ...sub,
             nextPaymentDate: newDateStr,
             status: newStatus,
             price: newPrice,
           })
-        } else {
-          updatedSubsForNotifications.push(sub)
+        } else if (timeChanged) {
+          // 🚀 Если время изменилось, добавляем ВСЕ подписки для пересоздания уведомлений
+          subsToUpdateNotifications.push(sub)
         }
       }
 
@@ -88,21 +97,31 @@ export const useSubscriptionSync = () => {
         batchUpdateSubscriptions(updates)
       }
 
-      // 🚀 ФАЗА 2: Очищаем старые ключи, отменяем уведомления и планируем новые
+      // 🚀 Если время не менялось и даты не обновлялись — ничего не трогаем
+      if (subsToUpdateNotifications.length === 0) return
+
       try {
-        // 1. Находим и удаляем все ключи уведомлений из AsyncStorage
-        const allKeys = await AsyncStorage.getAllKeys()
-        const notifKeys = allKeys.filter((k) => k.startsWith('@notif_planned_'))
-        if (notifKeys.length > 0) {
-          await AsyncStorage.multiRemove(notifKeys)
-        }
+        // 🚀 Если время изменилось — полная очистка и пересоздание ВСЕХ уведомлений
+        if (timeChanged) {
+          const allKeys = await AsyncStorage.getAllKeys()
+          const notifKeys = allKeys.filter((k) =>
+            k.startsWith('@notif_planned_'),
+          )
+          if (notifKeys.length > 0) {
+            await AsyncStorage.multiRemove(notifKeys)
+          }
+          await Notifications.cancelAllScheduledNotificationsAsync()
 
-        // 2. Отменяем все запланированные уведомления
-        await Notifications.cancelAllScheduledNotificationsAsync()
-
-        // 3. Планируем новые для каждой подписки
-        for (const sub of updatedSubsForNotifications) {
-          await scheduleSubscriptionReminder(sub, settingsPayload)
+          for (const sub of subsToUpdateNotifications) {
+            await scheduleSubscriptionReminder(sub, settingsPayload)
+          }
+        } else {
+          // 🚀 Если просто обновились даты (автопродление) — пересоздаем уведомления только для них
+          for (const sub of subsToUpdateNotifications) {
+            const storageKey = `@notif_planned_${sub.id}`
+            await AsyncStorage.removeItem(storageKey)
+            await scheduleSubscriptionReminder(sub, settingsPayload)
+          }
         }
       } catch (error) {
         console.error('❌ Ошибка синхронизации уведомлений:', error)
