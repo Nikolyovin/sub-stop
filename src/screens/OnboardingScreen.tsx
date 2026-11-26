@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo } from 'react'
 import {
   View,
   Text,
@@ -7,58 +7,58 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
-} from "react-native";
-import * as Haptics from "expo-haptics";
-import LottieView from "lottie-react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
-import { useOnboarding, ONBOARDING_DATA } from "../hooks/useOnboarding";
-import { AnimatedDot } from "../components/ui/AnimatedDot";
-import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from "../theme";
-import { useTheme } from "../theme/ThemeContext";
+} from 'react-native'
+import * as Haptics from 'expo-haptics'
+import LottieView from 'lottie-react-native'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { useOnboarding, ONBOARDING_DATA } from '../hooks/useOnboarding'
+import { AnimatedDot } from '../components/ui/AnimatedDot'
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS, ThemeColors } from '../theme'
+import { useTheme } from '../theme/ThemeContext'
 
-const { width } = Dimensions.get("window");
-const viewabilityConfig = { viewAreaCoveragePercentThreshold: 50 };
+const { width } = Dimensions.get('window')
+const viewabilityConfig = { viewAreaCoveragePercentThreshold: 50 }
 
 interface OnboardingScreenProps {
-  onFinish: () => void;
+  onFinish: () => void
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   onFinish,
 }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const flatListRef = useRef<FlatList>(null);
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
+  const flatListRef = useRef<FlatList>(null)
 
   const { currentIndex, setCurrentIndex, nextSlide, isLastSlide } =
-    useOnboarding(onFinish);
+    useOnboarding(onFinish)
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index || 0);
-      if (Platform.OS !== "web") {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setCurrentIndex(viewableItems[0].index || 0)
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
       }
     }
-  }).current;
+  }).current
 
   const handleNext = () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     }
     if (!isLastSlide) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
+      flatListRef.current?.scrollToIndex({ index: currentIndex + 1 })
     } else {
-      nextSlide();
+      nextSlide()
     }
-  };
+  }
 
   const handleSkip = () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     }
-    onFinish();
-  };
+    onFinish()
+  }
 
   return (
     <View style={styles.container}>
@@ -92,7 +92,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
               autoPlay
               loop
               style={styles.lottie}
-              resizeMode="contain"
+              resizeMode='contain'
             />
 
             {/* Текст с плавным появлением */}
@@ -131,18 +131,18 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         activeOpacity={0.8}
       >
         <Text style={styles.buttonText}>
-          {isLastSlide ? "Начать экономить" : "Далее"}
+          {isLastSlide ? 'Начать' : 'Далее'}
         </Text>
       </TouchableOpacity>
     </View>
-  );
-};
+  )
+}
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     skipContainer: {
-      position: "absolute",
+      position: 'absolute',
       top: 60,
       right: 24,
       zIndex: 10,
@@ -154,8 +154,8 @@ const createStyles = (colors: ThemeColors) =>
     },
     slide: {
       width,
-      alignItems: "center",
-      justifyContent: "center",
+      alignItems: 'center',
+      justifyContent: 'center',
       paddingHorizontal: SPACING.xl,
       paddingTop: 80,
     },
@@ -165,28 +165,28 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: SPACING.xl,
     },
     textContainer: {
-      alignItems: "center",
+      alignItems: 'center',
       paddingHorizontal: SPACING.lg,
     },
     title: {
       ...TYPOGRAPHY.title,
       fontSize: 28,
-      fontWeight: "800",
-      textAlign: "center",
+      fontWeight: '800',
+      textAlign: 'center',
       marginBottom: SPACING.md,
       lineHeight: 34,
     },
     description: {
       ...TYPOGRAPHY.body,
       fontSize: 16,
-      textAlign: "center",
+      textAlign: 'center',
       lineHeight: 24,
     },
     pagination: {
-      flexDirection: "row",
-      justifyContent: "center",
+      flexDirection: 'row',
+      justifyContent: 'center',
       marginBottom: SPACING.xl,
-      alignItems: "center",
+      alignItems: 'center',
     },
     button: {
       backgroundColor: colors.primary,
@@ -194,12 +194,12 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: 60,
       paddingVertical: SPACING.md,
       borderRadius: BORDER_RADIUS.round,
-      alignItems: "center",
+      alignItems: 'center',
     },
     buttonText: {
       ...TYPOGRAPHY.button,
       color: colors.white,
       fontSize: 18,
-      fontWeight: "700",
+      fontWeight: '700',
     },
-  });
+  })
