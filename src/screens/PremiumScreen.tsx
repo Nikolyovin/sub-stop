@@ -45,15 +45,26 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
       "change",
       async (nextAppState) => {
         if (nextAppState === "active" && !isPremium) {
-          console.log(
-            "🔄 [APP] Приложение вернулось в активное состояние, проверяем премиум...",
-          );
           await checkPremiumStatus();
         }
       },
     );
     return () => subscription.remove();
   }, [isPremium, checkPremiumStatus]);
+
+  // 🚀 Функция опроса сервера (делает несколько попыток)
+  const pollPremiumStatus = async (
+    attempts = 10,
+    delay = 3000,
+  ): Promise<boolean> => {
+    for (let i = 0; i < attempts; i++) {
+      console.log(`🔍 Проверка статуса (попытка ${i + 1}/${attempts})...`);
+      const status = await checkPremiumStatus();
+      if (status) return true;
+      await new Promise<void>((resolve) => setTimeout(() => resolve(), delay));
+    }
+    return false;
+  };
 
   const handleStartPayment = async () => {
     if (!email.includes("@") || email.length < 5) {
@@ -64,12 +75,6 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
     setIsLoading(true);
     try {
       const deviceId = getDeviceId();
-      console.log(
-        "🟢 [APP 1] Начало запроса оплаты. Email:",
-        email,
-        "DeviceID:",
-        deviceId,
-      );
 
       const response = await fetch(`${API_URL}/api/create-payment`, {
         method: "POST",
@@ -80,33 +85,13 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
         }),
       });
 
-      console.log(
-        "🟢 [APP 2] Статус ответа сервера:",
-        response.status,
-        response.statusText,
-      );
-
-      const rawText = await response.text();
-      console.log(
-        "🟡 [APP 3] Сырой ответ от сервера (первые 200 символов):",
-        rawText.substring(0, 200),
-      );
-
-      let data;
-      try {
-        data = JSON.parse(rawText);
-        console.log("🟢 [APP 4] Успешно распарсен JSON:", data);
-      } catch (parseError) {
-        console.error(
-          "🔴 [APP 4.5] ОШИБКА ПАРСИНГА JSON! Сервер вернул не JSON:",
-          parseError,
-        );
-        throw new Error(
-          "Сервер вернул некорректный формат данных. Возможно, он временно недоступен.",
-        );
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Сервер обновляется. Попробуйте через 10 секунд.");
       }
 
-      // 🚀 НОВАЯ ЛОГИКА: Обрабатываем ситуацию, когда Премиум уже куплен (статус 409)
+      const data = await response.json();
+
       if (response.status === 409) {
         Alert.alert(
           "Премиум уже активен",
@@ -114,34 +99,25 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
           [{ text: "Понятно" }],
         );
         setIsLoading(false);
-        return; // Прерываем выполнение, браузер не откроется
+        return;
       }
 
       if (!response.ok) {
-        console.error(
-          "🔴 [APP 5] Сервер вернул ошибку HTTP:",
-          response.status,
-          data,
-        );
         throw new Error(
           data.error || data.details || `Ошибка сервера: ${response.status}`,
         );
       }
 
       if (data.url) {
-        console.log("🟢 [APP 6] Ссылка получена! Открываем браузер...");
         setShowEmailModal(false);
-
         await WebBrowser.openBrowserAsync(data.url);
 
         console.log(
-          "🟢 [APP 7] Браузер закрыт. Ждем вебхук от Робокассы и проверяем статус...",
+          "🔄 Браузер закрыт. Начинаем проверку статуса (до 30 сек)...",
         );
 
-        // 🚀 Даем Робокассе 3 секунды на отправку вебхука на наш сервер
-        await new Promise<void>((resolve) => setTimeout(resolve, 3000));
-
-        const isNowPremium = await checkPremiumStatus();
+        // 🚀 Опрос 10 раз по 3 секунды = 30 секунд
+        const isNowPremium = await pollPremiumStatus(10, 3000);
 
         if (isNowPremium) {
           Alert.alert(
@@ -151,24 +127,19 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
         } else {
           Alert.alert(
             "⏳ Оплата обрабатывается",
-            "Если вы успешно оплатили, статус обновится в течение 1-2 минут. Если нет, просто перезапустите приложение.",
+            "Если оплата прошла успешно, но Премиум не появился, зайдите в Настройки -> «Восстановить покупку» и введите ваш email. Это активирует Премиум вручную.",
           );
         }
       } else {
-        console.error("🔴 [APP 8] В ответе сервера нет поля 'url'!", data);
         Alert.alert(
           "Ошибка",
           data.error || "Сервер не вернул ссылку на оплату.",
         );
       }
     } catch (error: any) {
-      console.error(
-        "🔴 🔴 🔴 [APP ❌] КРИТИЧЕСКАЯ ОШИБКА В ПРОЦЕССЕ ОПЛАТЫ 🔴 🔴 🔴",
-      );
-      console.error("Сообщение:", error.message);
-
+      console.error(error);
       Alert.alert(
-        "Ошибка оплаты",
+        "Ошибка",
         error.message || "Не удалось связаться с сервером. Проверьте интернет.",
       );
     } finally {
